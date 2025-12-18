@@ -229,10 +229,12 @@ export function NavContent({ slots, sx }: NavContentProps) {
 
       {slots?.bottomArea}
 
-      <Box sx={{ my: 1 }}>
-        <Typography variant="h3" sx={{ textAlign: 'center', color: '#0c6532' }}>
-          DagelApp
-        </Typography>
+      <Box sx={{ my: 2, mx: 'auto' }}>
+        <img
+          src={import.meta.env.VITE_BASE_URL + 'assets/imgs/dagelapp.png'}
+          alt="Dagelapp Logo"
+          style={{ maxWidth: '225px' }}
+        />
       </Box>
     </>
   );

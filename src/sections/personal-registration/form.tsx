@@ -5,7 +5,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, FieldValues, Controller, useWatch } from 'react-hook-form';
+import { useForm, FieldValues, Controller } from 'react-hook-form';
 
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -28,7 +28,6 @@ import { _errors } from 'src/utils/input-errors';
 import { compressFile } from 'src/utils/compress-files';
 
 import sharedServices from 'src/services/shared/shared-services';
-import ClientService from 'src/services/client-registration/client-registration-service';
 import personalRegistrationService from 'src/services/personal-registration/personal-registration-service';
 
 import { Iconify } from 'src/components/iconify';
@@ -97,7 +96,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
         .or(z.literal('')),
       profile: z.string().optional().or(z.literal('')),
       status: z.string().optional().or(z.literal('')),
-      enterprises: z.array(z.string()).optional(),
       fileExtension: z.string().optional().or(z.literal('')),
     })
     .superRefine((data, ctx) => {
@@ -147,7 +145,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     password: '',
     profile: '',
     status: '',
-    enterprises: [],
     fileExtension: '',
   };
 
@@ -159,7 +156,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   const [openDialog, setOpenDialog] = useState(false);
   const [positionList, setPositionList] = useState<any[]>([]);
   const [profileList, setProfileList] = useState<any[]>([]);
-  const [clientsList, setClientsList] = useState<any[]>([]);
 
   const [openDialogAdd, setOpenDialogAdd] = useState(false);
   const [lableAdd, setLabelAdd] = useState('');
@@ -194,8 +190,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     mode: 'onChange',
   });
 
-  const profileValue = useWatch({ control, name: 'profile' });
-
   useEffect(() => {
     if (openForm) {
       setIsLoading(true);
@@ -213,7 +207,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
         const axiosRoutes = [
           sharedServices.getList({ entity: 'POSITION' }),
           sharedServices.getList({ entity: 'PROFILE' }),
-          ClientService.getClient({ all: 'ALL' }),
         ];
 
         if (action === 'update') {
@@ -223,10 +216,9 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
         axios
           .all(axiosRoutes)
           .then(
-            axios.spread((positionRs, profileRs, clientRs, userRs) => {
+            axios.spread((positionRs, profileRs, userRs) => {
               setPositionList(positionRs.data);
               setProfileList(profileRs.data.filter((item: any) => item.type === 'System'));
-              setClientsList(clientRs.data);
 
               if (action === 'update' && userRs?.data) {
                 reset(userRs.data);
@@ -283,13 +275,8 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
       setValue('password', '');
       setValue('profile', '');
       setValue('status', '');
-      setValue('enterprises', []);
     }
   }, [isThereUser]);
-
-  useEffect(() => {
-    if (profileValue !== 'PROFILE2') setValue('enterprises', []);
-  }, [profileValue]);
 
   const handleDialogClose = () => {
     setOpenDialog(false);
@@ -584,7 +571,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <Controller
                   name="username"
                   control={control}
@@ -604,7 +591,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <Controller
                   name="password"
                   control={control}
@@ -625,7 +612,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <Controller
                   name="profile"
                   control={control}
@@ -669,48 +656,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                       <MenuItem value="">Seleccione</MenuItem>
                       <MenuItem value="ACTIVE">Activo</MenuItem>
                       <MenuItem value="INACTIVE">Inactivo</MenuItem>
-                    </TextField>
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-                <Controller
-                  name="enterprises"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      disabled={profileValue !== 'PROFILE2'}
-                      select
-                      fullWidth
-                      size="small"
-                      label="Empresas"
-                      value={field.value || []}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      SelectProps={{
-                        multiple: true,
-                        renderValue: (selected: any): React.ReactNode => {
-                          const selectedArray = Array.isArray(selected) ? selected : [selected];
-                          const names = selectedArray
-                            .map((clientPK) => {
-                              const client = clientsList.find(
-                                (enterprise: any) => enterprise.PK === clientPK
-                              );
-                              return client ? client.name : String(clientPK);
-                            })
-                            .filter(Boolean);
-                          return names.join(', ');
-                        },
-                      }}
-                      error={Boolean(errors.enterprises)}
-                      helperText={errors.enterprises && (errors.enterprises as any).message}
-                    >
-                      {clientsList.map((client: any) => (
-                        <MenuItem key={client.PK} value={client.PK}>
-                          <Checkbox checked={(field.value || []).indexOf(client.PK) > -1} />
-                          {client.name}
-                        </MenuItem>
-                      ))}
                     </TextField>
                   )}
                 />
