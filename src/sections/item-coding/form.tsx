@@ -23,7 +23,7 @@ import { _errors } from 'src/utils/input-errors';
 import { compressFile } from 'src/utils/compress-files';
 
 import sharedServices from 'src/services/shared/shared-services';
-import IngredientService from 'src/services/ingredient-coding/ingredient-coding-service';
+import ItemService from 'src/services/item-coding/item-coding-service';
 
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
@@ -42,69 +42,31 @@ interface Props {
 
 export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Props) {
   const schema = z.object({
-    group: z.string().nonempty(_errors.required),
-    name: z
+    reference: z
       .string()
       .nonempty(_errors.required)
-      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$/, _errors.regex)
-      .max(255, _errors.maxLength),
-    unit: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[a-zA-Z0-9-. ]+$/, _errors.regex)
+      .regex(/^[a-zA-Z0-9]+$/, _errors.regex)
       .max(20, _errors.maxLength),
-    lossPercentage: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[0-9.]+$/, _errors.regex)
-      .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
-      .refine((val) => !(Number(val) > 100), {
-        message: `${_errors.max} 100`,
-      })
-      .refine((val) => !(Number(val) < 0), {
-        message: `${_errors.min} 0`,
-      }),
-    usablePercentage: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[0-9.]+$/, _errors.regex)
-      .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
-      .refine((val) => !(Number(val) > 100), {
-        message: `${_errors.max} 100`,
-      })
-      .refine((val) => !(Number(val) < 0), {
-        message: `${_errors.min} 0`,
-      }),
-    weight: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[0-9.]+$/, _errors.regex)
-      .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
-      .refine((val) => !(Number(val) < 0.01), {
-        message: `${_errors.min} 0.01`,
-      }),
-    storage: z.string().nonempty(_errors.required),
-    calories: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[0-9.]+$/, _errors.regex)
-      .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
-      .refine((val) => !(Number(val) < 0), {
-        message: `${_errors.min} 0`,
-      }),
-    fileExtension: z.string().optional().or(z.literal('')),
+    category: z.string().optional().or(z.literal('')),
+    group: z.string().nonempty(_errors.required),
+    subgroup: z.string().optional().or(z.literal('')),
+    name: z.string().nonempty(_errors.required).max(20, _errors.maxLength),
+    longName: z.string().max(255, _errors.maxLength).optional().or(z.literal('')),
+    iva: z.string().nonempty(_errors.required),
+    unit: z.string().nonempty(_errors.required),
+    status: z.string().nonempty(_errors.required),
   });
 
   const defaultValues = {
+    reference: '',
+    category: '',
     group: '',
+    subgroup: '',
     name: '',
+    longName: '',
+    iva: '',
     unit: '',
-    lossPercentage: '',
-    usablePercentage: '',
-    weight: '',
-    storage: '',
-    calories: '',
-    fileExtension: '',
+    status: '',
   };
 
   type FormData = z.infer<typeof schema>;
@@ -121,16 +83,9 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   const [entityAdd, setEntityAdd] = useState('');
   const [currentAddData, setCurrentAddData] = useState<any[]>([]);
 
-  const [fileName, setFileName] = useState<string | undefined>('');
-  const [url, setUrl] = useState<string | undefined>('');
-  const [file, setFile] = useState<File>();
-  const [compressedFile, setCompressedFile] = useState<File>();
-  const [isCompressingFile, setIsCompressingFile] = useState<boolean>(false);
-
   const [isSavingData, setIsSavingData] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState<any>('');
-  const [attachedErrorMessage, seAtttachedErrorMessage] = useState('');
 
   const {
     handleSubmit,
@@ -151,8 +106,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
       setGlobalError(false);
 
       reset(defaultValues);
-      setUrl('');
-      setFileName('');
       cleanMessages();
       setOpenDialog(true);
 
@@ -163,27 +116,19 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
         ];
 
         if (action === 'update') {
-          axiosRoutes.push(IngredientService.getIngredient({ PK: PK, action: 'UPDATE' }));
+          axiosRoutes.push(ItemService.getItem({ PK: PK, action: 'UPDATE' }));
         }
 
         axios
           .all(axiosRoutes)
           .then(
-            axios.spread((groupRs, storageRs, ingredientRs) => {
+            axios.spread((groupRs, storageRs, itemRs) => {
               setGroupList(groupRs.data);
               setStorageList(storageRs.data);
 
-              if (action === 'update' && ingredientRs?.data) {
-                const data = ingredientRs.data;
-
-                data.lossPercentage = String(data.lossPercentage);
-                data.usablePercentage = String(data.usablePercentage);
-                data.weight = String(data.weight);
-                data.calories = String(data.calories);
-
+              if (action === 'update' && itemRs?.data) {
+                const data = itemRs.data;
                 reset(data);
-                setValue('fileExtension', '');
-                if (ingredientRs.data.getUrl) setUrl(ingredientRs.data.getUrl);
               }
 
               setIsLoading(false);
@@ -199,23 +144,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
       fetchData();
     }
   }, [openForm]);
-
-  useEffect(() => {
-    if (file) {
-      setIsCompressingFile(true);
-      const getNewFile = async () => {
-        const newFile = await compressFile(file);
-
-        setCompressedFile(newFile);
-        setFileName(newFile.name);
-        setValue(`fileExtension`, newFile.name.split('.').pop());
-        setUrl('');
-        setTimeout(() => setIsCompressingFile(false), 1000);
-      };
-
-      getNewFile();
-    }
-  }, [file]);
 
   const handleDialogClose = () => {
     setOpenDialog(false);
@@ -237,14 +165,9 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     }
   };
 
-  const onFileSelected = (event: any) => {
-    setFile(event.target.files[0]);
-  };
-
   const cleanMessages = () => {
     setSuccessMessage('');
     setErrorMessage('');
-    seAtttachedErrorMessage('');
   };
 
   const afterSubmit = () => {
@@ -254,43 +177,19 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     setIsSavingData(false);
   };
 
-  const saveIngredient = async (data: any) => {
-    data.lossPercentage = Number(data.lossPercentage);
-    data.usablePercentage = Number(data.usablePercentage);
-    data.weight = Number(data.weight);
-    data.calories = Number(data.calories);
-
+  const saveItem = async (data: any) => {
     if (!data.unit) delete data.unit;
     if (!data.fileExtension) delete data.fileExtension;
     if (action === 'update') data.PK = PK;
 
-    const ingredientRq =
-      action === 'create'
-        ? IngredientService.createIngredient(data)
-        : IngredientService.updateIngredient(data);
+    const itemRq =
+      action === 'create' ? ItemService.createItem(data) : ItemService.updateItem(data);
 
-    ingredientRq
-      .then((ingredientRs) => {
-        if (ingredientRs.data.putUrl) {
-          const fileRq = sharedServices.uploadFile(ingredientRs.data.putUrl, compressedFile!);
-
-          fileRq
-            .then((fileRs) => {
-              setSuccessMessage('Operación realizada con éxito');
-              afterSubmit();
-            })
-            .catch((fileError) => {
-              seAtttachedErrorMessage(
-                'El registro se guardó correctamente pero se ha presentado un error al subir el archivo'
-              );
-              afterSubmit();
-            });
-          setFileName('');
-        } else {
-          setSuccessMessage('Operación realizada con éxito');
-          afterSubmit();
-        }
-        handleSavedData(ingredientRs.data);
+    itemRq
+      .then((itemRs) => {
+        setSuccessMessage('Operación realizada con éxito');
+        afterSubmit();
+        handleSavedData(itemRs.data);
       })
       .catch((userError) => {
         if (userError.response) setErrorMessage(userError.response.data);
@@ -304,16 +203,16 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     cleanMessages();
 
     if (action === 'create') {
-      const ingredientNameRq = IngredientService.getIngredient({
+      const itemNameRq = ItemService.getItem({
         name: control._formValues.name,
       });
 
-      ingredientNameRq
-        .then((ingredientNameRs) => {
-          if (ingredientNameRs.data.length > 0) {
+      itemNameRq
+        .then((itemNameRs) => {
+          if (itemNameRs.data.length > 0) {
             const message = (
               <>
-                <Typography>Este ingrediente ya existe. Utilice un nombre diferente a:</Typography>
+                <Typography>Este iteme ya existe. Utilice un nombre diferente a:</Typography>
                 <List
                   sx={{
                     listStyleType: 'disc',
@@ -321,7 +220,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                     '& .MuiListItem-root': { display: 'list-item' },
                   }}
                 >
-                  {ingredientNameRs.data.map((element: any) => (
+                  {itemNameRs.data.map((element: any) => (
                     <ListItem disablePadding key={element.PK}>
                       <ListItemText primary={element.name} />
                     </ListItem>
@@ -333,14 +232,14 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
             setIsSavingData(false);
             return;
           } else {
-            saveIngredient(data);
+            saveItem(data);
           }
         })
         .catch((userError) => {
           setIsSavingData(false);
           return;
         });
-    } else saveIngredient(data);
+    } else saveItem(data);
   };
 
   return (
@@ -368,6 +267,48 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
         <>
           <form onSubmit={handleSubmit(onSubmit)}>
             <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Controller
+                  name="reference"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Referencia *"
+                      {...field}
+                      error={Boolean(errors.reference)}
+                      helperText={errors.reference && errors.reference.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="category"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Categoría"
+                      {...field}
+                      error={Boolean(errors.category)}
+                      helperText={errors.category && errors.category.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      {groupList.map((group: any) => (
+                        <MenuItem key={group.PK} value={group.PK}>
+                          {group.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
               <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <Controller
                   name="group"
@@ -415,17 +356,102 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <Controller
+                  name="subgroup"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Subgrupo"
+                      {...field}
+                      error={Boolean(errors.subgroup)}
+                      helperText={errors.subgroup && errors.subgroup.message}
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => onOpenDialogAdd('GROUP', 'grupo', groupList)}
+                                edge="end"
+                              >
+                                <Iconify icon="mingcute:add-line" />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      sx={{
+                        '& .MuiSvgIcon-root': {
+                          position: 'absolute',
+                          right: '35px',
+                        },
+                      }}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      {groupList.map((group: any) => (
+                        <MenuItem key={group.PK} value={group.PK}>
+                          {group.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Controller
                   name="name"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       fullWidth
                       size="small"
-                      label="Artículo *"
+                      label="Nombre *"
                       {...field}
                       error={Boolean(errors.name)}
                       helperText={errors.name && errors.name.message}
                     />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Controller
+                  name="longName"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Nombre largo *"
+                      {...field}
+                      error={Boolean(errors.longName)}
+                      helperText={errors.longName && errors.longName.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="iva"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Iva *"
+                      {...field}
+                      error={Boolean(errors.iva)}
+                      helperText={errors.iva && errors.iva.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      <MenuItem value="19%">19%</MenuItem>
+                      <MenuItem value="5%">5%</MenuItem>
+                      <MenuItem value="No gravado">No gravado</MenuItem>
+                    </TextField>
                   )}
                 />
               </Grid>
@@ -445,10 +471,10 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                       helperText={errors.unit && errors.unit.message}
                     >
                       <MenuItem value="">Seleccione</MenuItem>
-                      <MenuItem value="Kg.">Kg.</MenuItem>
-                      <MenuItem value="L.">L.</MenuItem>
                       <MenuItem value="Unidad">Unidad</MenuItem>
                       <MenuItem value="Paquete">Paquete</MenuItem>
+                      <MenuItem value="Par">Par</MenuItem>
+                      <MenuItem value="Botella">Botella</MenuItem>
                     </TextField>
                   )}
                 />
@@ -456,126 +482,24 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="lossPercentage"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Porcentaje de merma *"
-                      {...field}
-                      error={Boolean(errors.lossPercentage)}
-                      helperText={errors.lossPercentage && errors.lossPercentage.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Controller
-                  name="usablePercentage"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Porcentaje utilizable *"
-                      {...field}
-                      error={Boolean(errors.usablePercentage)}
-                      helperText={errors.usablePercentage && errors.usablePercentage.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Controller
-                  name="weight"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Peso neto *"
-                      {...field}
-                      error={Boolean(errors.weight)}
-                      helperText={errors.weight && errors.weight.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Controller
-                  name="storage"
+                  name="status"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       select
                       fullWidth
                       size="small"
-                      label="Condiciones de almacenamiento *"
+                      label="Estado *"
                       {...field}
-                      error={Boolean(errors.storage)}
-                      helperText={errors.storage && errors.storage.message}
+                      error={Boolean(errors.status)}
+                      helperText={errors.status && errors.status.message}
                     >
                       <MenuItem value="">Seleccione</MenuItem>
-                      {storageList.map((storage: any) => (
-                        <MenuItem key={storage.PK} value={storage.PK}>
-                          {storage.name}
-                        </MenuItem>
-                      ))}
+                      <MenuItem value="ACTIVE">Activo</MenuItem>
+                      <MenuItem value="INACTIVE">Inactivo</MenuItem>
                     </TextField>
                   )}
                 />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Controller
-                  name="calories"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Calorias (Kcal) *"
-                      {...field}
-                      error={Boolean(errors.calories)}
-                      helperText={errors.calories && errors.calories.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid
-                size={12}
-                sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}
-              >
-                <Typography sx={{ m: 0 }}>
-                  Foto: {fileName || 'Aún no se ha subido ningún archivo.'}
-                </Typography>
-                <Button
-                  disabled={isSavingData || isCompressingFile}
-                  component="label"
-                  role={undefined}
-                  variant="contained"
-                  tabIndex={-1}
-                >
-                  <Iconify icon="eva:attach-2-fill" />
-                  <input
-                    value=""
-                    accept="image/png, image/jpeg, image/jpg"
-                    hidden
-                    type="file"
-                    onChange={onFileSelected}
-                  />
-                </Button>
-
-                {url !== '' && (
-                  <Link href={url} target="_blank" sx={{ m: 0, cursor: 'pointer' }}>
-                    Descargar archivo adjunto
-                  </Link>
-                )}
               </Grid>
 
               {errorMessage !== '' && (
@@ -589,21 +513,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                     }}
                   >
                     {errorMessage}
-                  </Alert>
-                </Grid>
-              )}
-
-              {attachedErrorMessage !== '' && (
-                <Grid size={12}>
-                  <Alert
-                    severity="warning"
-                    sx={{
-                      borderRadius: 1,
-                      width: 1,
-                      mb: 0,
-                    }}
-                  >
-                    {attachedErrorMessage}
                   </Alert>
                 </Grid>
               )}
@@ -625,7 +534,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={12}>
                 <Button
-                  disabled={isCompressingFile}
                   type="submit"
                   variant="contained"
                   color="inherit"

@@ -22,7 +22,7 @@ export const DashboardPage = lazy(() => import('src/pages/dashboard'));
 
 export const PersonalRegistration = lazy(() => import('src/pages/personal-registration'));
 export const ClientRegistration = lazy(() => import('src/pages/client-registration'));
-export const IngredientCoding = lazy(() => import('src/pages/ingredient-coding'));
+export const ItemCoding = lazy(() => import('src/pages/item-coding'));
 
 export const LoginPage = lazy(() => import('src/pages/login'));
 
@@ -131,7 +131,7 @@ export const routesSection: RouteObject[] = [
       { index: true, element: <DashboardPage /> },
       { path: 'personal-registration', element: <PersonalRegistration /> },
       { path: 'client-registration', element: <ClientRegistration /> },
-      { path: 'ingredient-coding', element: <IngredientCoding /> },
+      { path: 'item-coding', element: <ItemCoding /> },
     ],
   },
   { path: '*', element: <RootRedirect /> },

@@ -1,6 +1,6 @@
 import { CONFIG } from 'src/config-global';
 
-import { IngredientCodingView } from 'src/sections/ingredient-coding';
+import { ItemCodingView } from 'src/sections/item-coding';
 
 // ----------------------------------------------------------------------
 
@@ -9,7 +9,7 @@ export default function Page() {
     <>
       <title>{`Base de datos de productos - ${CONFIG.appName}`}</title>
 
-      <IngredientCodingView />
+      <ItemCodingView />
     </>
   );
 }

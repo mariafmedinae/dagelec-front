@@ -18,7 +18,7 @@ import {
 import { getActionsList, verifyPermission } from 'src/utils/permissions-functions';
 
 import sharedServices from 'src/services/shared/shared-services';
-import IngredientService from 'src/services/ingredient-coding/ingredient-coding-service';
+import ItemService from 'src/services/item-coding/item-coding-service';
 
 import { Inform } from 'src/components/pdf';
 import { Iconify } from 'src/components/iconify';
@@ -31,9 +31,6 @@ import {
   getComparator,
   useTable,
 } from 'src/components/data-table';
-
-import { DeleteAlert } from './delete-alert';
-import { IngredientInfo } from './ingredient-info';
 
 // ----------------------------------------------------------------------
 
@@ -52,7 +49,7 @@ export function Search({
   savedData,
   handleUpdateAction,
 }: Props) {
-  type IngredientProps = {
+  type ItemProps = {
     PK: string;
     code: string;
     name: string;
@@ -89,13 +86,7 @@ export function Search({
   const [errorMessage, setErrorMessage] = useState('');
 
   const [requestType, setRequestType] = useState('');
-  const [searchResult, setSearchResult] = useState<IngredientProps[]>([]);
-
-  const [openAlert, setOpenAlert] = useState(false);
-  const [deleteElement, setDeleteElement] = useState<any>();
-
-  const [openInfo, setOpenInfo] = useState(false);
-  const [selectedIngredient, setSelectedIngredient] = useState<any>({});
+  const [searchResult, setSearchResult] = useState<ItemProps[]>([]);
 
   const tableActions = getActionsList(permissionsList, formPK);
 
@@ -103,7 +94,7 @@ export function Search({
 
   const [filterName, setFilterName] = useState('');
 
-  const dataFiltered: IngredientProps[] = applyFilter({
+  const dataFiltered: ItemProps[] = applyFilter({
     inputData: searchResult,
     comparator: getComparator(table.order, table.orderBy),
     filterName,
@@ -135,9 +126,9 @@ export function Search({
       if (selectedGroup) query.group = selectedGroup;
       query.action = requestType === 'search' ? 'SEARCH' : 'INFORM';
 
-      const ingredientRq = IngredientService.getIngredient(query);
+      const itemRq = ItemService.getItem(query);
 
-      ingredientRq
+      itemRq
         .then((res) => {
           if (res.data.length === 0) {
             setErrorMessage(
@@ -212,15 +203,6 @@ export function Search({
     }
 
     setRequestType(request);
-  };
-
-  const handleDeleteAction = (element: any) => {
-    setOpenAlert(true);
-    setDeleteElement(element);
-  };
-
-  const deleteRow = () => {
-    setSearchResult((prevItems) => prevItems.filter((item) => item.PK !== deleteElement.PK));
   };
 
   const resertTableFilters = () => {
@@ -360,11 +342,6 @@ export function Search({
                           headLabel={headLabel}
                           tableActions={tableActions}
                           onUpdateAction={() => handleUpdateAction(row.PK)}
-                          onDeleteAction={() => handleDeleteAction(row)}
-                          onItemInfo={() => {
-                            setSelectedIngredient(row);
-                            setOpenInfo(true);
-                          }}
                         />
                       ))}
                   </TableBody>
@@ -385,27 +362,6 @@ export function Search({
           </>
         )}
       </Card>
-
-      {openInfo && (
-        <IngredientInfo
-          openInfo={openInfo}
-          element={selectedIngredient}
-          onCloseInfo={() => setOpenInfo(false)}
-        />
-      )}
-
-      {openAlert && (
-        <DeleteAlert
-          openAlert={openAlert}
-          action="deleteRecipe"
-          element={deleteElement}
-          onCloseAlert={() => {
-            setDeleteElement(null);
-            setOpenAlert(false);
-          }}
-          handleDeletedElement={deleteRow}
-        />
-      )}
     </>
   );
 }

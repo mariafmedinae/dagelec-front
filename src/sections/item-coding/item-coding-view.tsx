@@ -10,11 +10,11 @@ import sharedServices from 'src/services/shared/shared-services';
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
 
-import { Form, Search } from 'src/sections/ingredient-coding';
+import { Form, Search } from 'src/sections/item-coding';
 
 // ----------------------------------------------------------------------
 
-export function IngredientCodingView() {
+export function ItemCodingView() {
   const [loadLists, setLoadLists] = useState(true);
 
   const [globalError, setGlobalError] = useState(false);
@@ -28,7 +28,7 @@ export function IngredientCodingView() {
 
   const [savedData, setSavedData] = useState();
 
-  const formPK = 'INGREDIENT';
+  const formPK = 'ITEM';
   const permissionsList = getFormPermissions(formPK);
 
   useEffect(() => {
@@ -59,9 +59,9 @@ export function IngredientCodingView() {
     setOpenForm(true);
   };
 
-  const onUpdateForm = (ingredientId: string) => {
+  const onUpdateForm = (itemId: string) => {
     setFormAction('update');
-    setPK(ingredientId);
+    setPK(itemId);
     setOpenForm(true);
   };
 
@@ -90,7 +90,7 @@ export function IngredientCodingView() {
             },
           }}
         >
-          Base de datos de productos
+          Codificación productos y servicios
         </Typography>
         <Button
           sx={{
@@ -102,7 +102,7 @@ export function IngredientCodingView() {
           startIcon={<Iconify icon="mingcute:add-line" />}
           onClick={onOpenForm}
         >
-          Nuevo producto
+          Nuevo producto o servicio
         </Button>
       </Box>
 

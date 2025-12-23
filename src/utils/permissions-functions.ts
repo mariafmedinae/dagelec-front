@@ -1,37 +1,37 @@
 // let permissions: any = [];
 const permissions = [
   {
-    PK: 'INGREDIENT',
-    SK: 'INGREDIENT',
+    PK: 'ITEM',
+    SK: 'ITEM',
     category: 'Menú Principal',
     description: 'Acá podrás administrar la base de datos de productos.',
     icon: 'fluent:food-grains-20-filled',
     index: 2,
     name: 'Base de datos de productos',
-    path: 'ingredient-coding',
+    path: 'item-coding',
     permissions: [
       {
-        PK: 'INGREDIENT',
+        PK: 'ITEM',
         action: 'INFORM',
         type: 'ALL',
       },
       {
-        PK: 'INGREDIENT',
+        PK: 'ITEM',
         action: 'UPDATE',
         type: 'ALL',
       },
       {
-        PK: 'INGREDIENT',
+        PK: 'ITEM',
         action: 'DELETE',
         type: 'ALL',
       },
       {
-        PK: 'INGREDIENT',
+        PK: 'ITEM',
         action: 'SEARCH',
         type: 'ALL',
       },
       {
-        PK: 'INGREDIENT',
+        PK: 'ITEM',
         action: 'CREATE',
         type: 'ALL',
       },
