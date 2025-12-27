@@ -12,7 +12,6 @@ import { getMenu } from 'src/utils/permissions-functions';
 import { useAuth } from 'src/context/auth';
 import { AuthLayout } from 'src/layouts/auth';
 import { DashboardLayout } from 'src/layouts/dashboard';
-import { SelectedClientProvider } from 'src/context/selected-client';
 
 import { Loading } from 'src/components/loading';
 
@@ -21,7 +20,7 @@ import { Loading } from 'src/components/loading';
 export const DashboardPage = lazy(() => import('src/pages/dashboard'));
 
 export const PersonalRegistration = lazy(() => import('src/pages/personal-registration'));
-export const ClientRegistration = lazy(() => import('src/pages/client-registration'));
+export const VendorRegistration = lazy(() => import('src/pages/vendor-registration'));
 export const ItemCoding = lazy(() => import('src/pages/item-coding'));
 
 export const LoginPage = lazy(() => import('src/pages/login'));
@@ -118,19 +117,17 @@ export const routesSection: RouteObject[] = [
     path: 'dashboard',
     element: (
       <PrivateRoute>
-        <SelectedClientProvider>
-          <DashboardLayout>
-            <Suspense fallback={renderFallback()}>
-              <Outlet />
-            </Suspense>
-          </DashboardLayout>
-        </SelectedClientProvider>
+        <DashboardLayout>
+          <Suspense fallback={renderFallback()}>
+            <Outlet />
+          </Suspense>
+        </DashboardLayout>
       </PrivateRoute>
     ),
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'personal-registration', element: <PersonalRegistration /> },
-      { path: 'client-registration', element: <ClientRegistration /> },
+      { path: 'vendor-registration', element: <VendorRegistration /> },
       { path: 'item-coding', element: <ItemCoding /> },
     ],
   },

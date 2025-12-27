@@ -52,10 +52,9 @@ export function Search({
 }: Props) {
   type ItemProps = {
     PK: string;
-    code: string;
     name: string;
     unit: string;
-    storageName: boolean;
+    status: string;
   };
 
   const headLabel = [

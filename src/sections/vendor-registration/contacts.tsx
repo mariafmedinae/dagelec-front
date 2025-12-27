@@ -15,7 +15,7 @@ import {
 
 import { getActionsList, verifyPermission } from 'src/utils/permissions-functions';
 
-import ClientService from 'src/services/client-registration/client-registration-service';
+import VendorService from 'src/services/vendor-registration/vendor-registration-service';
 
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
@@ -99,7 +99,7 @@ export function Contacts({
     setIsLoading(true);
     setGlobalError(false);
 
-    const enterpriseRq = ClientService.getClient({
+    const enterpriseRq = VendorService.getVendor({
       PK: managedClientPK,
       action: 'MANAGE',
       type: 'C',

@@ -7,25 +7,24 @@ import { getFormPermissions, verifyPermission } from 'src/utils/permissions-func
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import sharedServices from 'src/services/shared/shared-services';
-import ClientService from 'src/services/client-registration/client-registration-service';
+import VendorService from 'src/services/vendor-registration/vendor-registration-service';
 
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
 
-import { Contacts, Form, Search } from 'src/sections/client-registration';
+import { Contacts, Form, Search } from 'src/sections/vendor-registration';
 
 // ----------------------------------------------------------------------
 
-export function ClientRegistrationView() {
+export function VendorRegistrationView() {
   const [loadLists, setLoadLists] = useState(true);
 
   const [globalError, setGlobalError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [clientsList, setClientsList] = useState([]);
-  const [countryList, setCountryList] = useState([]);
+  const [vendorsList, setVendorsList] = useState([]);
+  const [departmentList, setDepartmentList] = useState([]);
   const [cityList, setCityList] = useState([]);
-  const [sectorList, setSectorList] = useState([]);
 
   const [openForm, setOpenForm] = useState(false);
   const [formAction, setFormAction] = useState('');
@@ -37,7 +36,7 @@ export function ClientRegistrationView() {
 
   const [savedData, setSavedData] = useState();
 
-  const formPK = 'ENTERPRISE';
+  const formPK = 'VENDOR';
   const permissionsList = getFormPermissions(formPK);
 
   useEffect(() => {
@@ -47,20 +46,18 @@ export function ClientRegistrationView() {
 
       if (verifyPermission(permissionsList, formPK, 'SEARCH')) {
         const axiosRoutes = [
-          sharedServices.getList({ entity: 'COUNTRY' }),
+          sharedServices.getList({ entity: 'DEPARTMENT' }),
           sharedServices.getList({ entity: 'CITY' }),
-          sharedServices.getList({ entity: 'SECTOR' }),
-          ClientService.getClient({ all: 'ALL' }),
+          VendorService.getVendor({ all: 'ALL' }),
         ];
 
         axios
           .all(axiosRoutes)
           .then(
-            axios.spread((countryRs, cityRs, sectorRs, clientRs) => {
-              setCountryList(countryRs.data);
+            axios.spread((departmentRs, cityRs, vendorRs) => {
+              setDepartmentList(departmentRs.data);
               setCityList(cityRs.data);
-              setSectorList(sectorRs.data);
-              setClientsList(clientRs.data);
+              setVendorsList(vendorRs.data);
               setIsLoading(false);
               setGlobalError(false);
               setTimeout(() => setLoadLists(false), 500);
@@ -116,7 +113,7 @@ export function ClientRegistrationView() {
             },
           }}
         >
-          Registro cliente
+          Registro proveedores
         </Typography>
         <Button
           sx={{
@@ -128,7 +125,7 @@ export function ClientRegistrationView() {
           startIcon={<Iconify icon="mingcute:add-line" />}
           onClick={onOpenForm}
         >
-          Nuevo cliente
+          Nuevo proveedor
         </Button>
       </Box>
 
@@ -166,10 +163,9 @@ export function ClientRegistrationView() {
           <Search
             formPK={formPK}
             permissionsList={permissionsList}
-            clientsList={clientsList}
-            countryList={countryList}
+            vendorList={vendorsList}
+            departmentList={departmentList}
             cityList={cityList}
-            sectorList={sectorList}
             savedData={savedData}
             handleUpdateAction={(data) => onUpdateForm(data)}
             handleManageAction={(data) => onManageContacts(data)}

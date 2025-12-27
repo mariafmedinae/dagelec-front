@@ -20,7 +20,7 @@ import { _errors } from 'src/utils/input-errors';
 import { compressFile } from 'src/utils/compress-files';
 
 import sharedServices from 'src/services/shared/shared-services';
-import ClientService from 'src/services/client-registration/client-registration-service';
+import VendorService from 'src/services/vendor-registration/vendor-registration-service';
 
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
@@ -173,7 +173,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
         ];
 
         if (action === 'update') {
-          axiosRoutes.push(ClientService.getClient({ PK: PK, action: 'UPDATE', type: 'U' }));
+          axiosRoutes.push(VendorService.getVendor({ PK: PK, action: 'UPDATE', type: 'U' }));
         }
 
         axios
@@ -309,7 +309,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     if (action === 'update') data.PK = PK;
 
     const clientRq =
-      action === 'create' ? ClientService.createClient(data) : ClientService.updateClient(data);
+      action === 'create' ? VendorService.createVendor(data) : VendorService.updateVendor(data);
 
     clientRq
       .then((clientRs) => {
@@ -438,7 +438,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                       helperText={errors.typeId && errors.typeId.message}
                     >
                       <MenuItem value="">Seleccione</MenuItem>
-                      <MenuItem value="Nit">Nit</MenuItem>
+                      <MenuItem value="Nit">NIT</MenuItem>
                       <MenuItem value="Cédula">Cédula</MenuItem>
                     </TextField>
                   )}

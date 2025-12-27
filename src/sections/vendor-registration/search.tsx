@@ -17,9 +17,8 @@ import {
 
 import { getActionsList, verifyPermission } from 'src/utils/permissions-functions';
 
-import { useSelectedClient } from 'src/context/selected-client';
 import sharedServices from 'src/services/shared/shared-services';
-import ClientService from 'src/services/client-registration/client-registration-service';
+import VendorService from 'src/services/vendor-registration/vendor-registration-service';
 
 import { Inform } from 'src/components/pdf';
 import { Iconify } from 'src/components/iconify';
@@ -38,10 +37,9 @@ import {
 interface Props {
   formPK: string;
   permissionsList: any;
-  clientsList: any;
-  countryList: any;
+  vendorList: any;
+  departmentList: any;
   cityList: any;
-  sectorList: any;
   savedData: any;
   handleUpdateAction: (PK: string) => void;
   handleManageAction: (PK: string) => void;
@@ -51,58 +49,56 @@ interface Props {
 export function Search({
   formPK,
   permissionsList,
-  clientsList,
-  countryList,
+  vendorList,
+  departmentList,
   cityList,
-  sectorList,
   savedData,
   handleUpdateAction,
   handleManageAction,
   hideContactSection,
 }: Props) {
-  type ClientProps = {
+  type VendorProps = {
     PK: string;
     name: string;
-    numberId: string;
+    typeActivity: string;
+    city: string;
     phone: string;
-    cityName: string;
   };
 
   const headLabel = [
     { id: '', label: '' },
     { id: 'name', label: 'Nombre' },
-    { id: 'numberId', label: 'Nit/Cédula' },
-    { id: 'phone', label: 'Teléfono' },
+    { id: 'typeActivity', label: 'NIT' },
     { id: 'cityName', label: 'Ciudad' },
+    { id: 'phone', label: 'Teléfono' },
   ];
 
-  const filesTitle = 'Informe Registro Cliente';
+  const filesTitle = 'Informe Registro proveedores';
   const filesHeaders = [
-    'Persona',
-    'Nombre/Razón social',
-    'Identificación',
-    'País',
-    'Ciudad',
+    'Nombre',
+    'NIT',
+    'DV',
     'Dirección',
+    'Departamento',
+    'Ciudad',
     'Teléfono',
-    'Email',
-    'Web',
+    'Tipo de actividad',
+    'Experiencia',
   ];
   const pdfColsWidth = ['10%', '13%', '10%', '10%', '10%', '10%', '10%', '12%', '15%'];
   let filesData;
 
-  const [selectedCountry, setSelectedCountry] = useState('');
+  const [selectedVendor, setSelectedVendor] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
-  const [selectedSector, setSelectedSector] = useState('');
+  const [selectedTypeActivity, setSelectedTypeActivity] = useState('');
   const [numberId, setNumberId] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const [requestType, setRequestType] = useState('');
-  const [searchResult, setSearchResult] = useState<ClientProps[]>([]);
-
-  const { setSelectedClient } = useSelectedClient();
+  const [searchResult, setSearchResult] = useState<VendorProps[]>([]);
 
   const tableActions = getActionsList(permissionsList, formPK);
 
@@ -110,7 +106,7 @@ export function Search({
 
   const [filterName, setFilterName] = useState('');
 
-  const dataFiltered: ClientProps[] = applyFilter({
+  const dataFiltered: VendorProps[] = applyFilter({
     inputData: searchResult,
     comparator: getComparator(table.order, table.orderBy),
     filterName,
@@ -123,26 +119,27 @@ export function Search({
 
       let validation;
 
-      if (selectedCountry && selectedCity && selectedSector)
+      if (selectedDepartment && selectedCity && selectedTypeActivity)
         validation =
-          savedData.country === selectedCountry &&
+          savedData.country === selectedDepartment &&
           savedData.city === selectedCity &&
-          savedData.sector === selectedSector;
-      if (selectedCountry && selectedCity)
-        validation = savedData.country === selectedCountry && savedData.city === selectedCity;
-      if (selectedCountry && selectedSector)
-        validation = savedData.country === selectedCountry && savedData.sector === selectedSector;
-      if (selectedCity && selectedSector)
-        validation = savedData.city === selectedCity && savedData.sector === selectedSector;
+          savedData.sector === selectedTypeActivity;
+      if (selectedDepartment && selectedCity)
+        validation = savedData.country === selectedDepartment && savedData.city === selectedCity;
+      if (selectedDepartment && selectedTypeActivity)
+        validation =
+          savedData.country === selectedDepartment && savedData.sector === selectedTypeActivity;
+      if (selectedCity && selectedTypeActivity)
+        validation = savedData.city === selectedCity && savedData.sector === selectedTypeActivity;
       else if (numberId) validation = savedData.numberId === numberId;
-      else if (selectedCountry) validation = savedData.country === selectedCountry;
+      else if (selectedDepartment) validation = savedData.country === selectedDepartment;
       else if (selectedCity) validation = savedData.city === selectedCity;
-      else if (selectedSector) validation = savedData.sector === selectedSector;
+      else if (selectedTypeActivity) validation = savedData.sector === selectedTypeActivity;
       else if (
-        localStorage.getItem('selectedClient') !== '' ||
-        localStorage.getItem('selectedClient') !== null
+        localStorage.getItem('selectedVendor') !== '' ||
+        localStorage.getItem('selectedVendor') !== null
       )
-        validation = savedData.PK === localStorage.getItem('selectedClient')!;
+        validation = savedData.PK === localStorage.getItem('selectedVendor')!;
 
       if (validation) {
         const index = searchResult.findIndex((item) => item.PK === savedData.PK);
@@ -152,11 +149,9 @@ export function Search({
           setSearchResult([savedData, ...searchResult]);
         }
       } else {
-        setSelectedClient(savedData.client);
-        localStorage.setItem('selectedClient', savedData.client);
-        setSelectedCountry('');
+        setSelectedDepartment('');
         setSelectedCity('');
-        setSelectedSector('');
+        setSelectedTypeActivity('');
         setNumberId('');
         setSearchResult([savedData]);
       }
@@ -168,24 +163,18 @@ export function Search({
   useEffect(() => {
     if (requestType && isLoading) {
       const query: Record<string, string> = {};
-      if (numberId || selectedCountry || selectedCity || selectedSector) {
-        if (numberId) query.numberId = numberId;
-        if (selectedCountry) query.country = selectedCountry;
-        if (selectedCity) query.city = selectedCity;
-        if (selectedSector) query.sector = selectedSector;
-      } else {
-        if (
-          localStorage.getItem('selectedClient') !== '' ||
-          localStorage.getItem('selectedClient') !== null
-        )
-          query.PK = localStorage.getItem('selectedClient')!;
-      }
+
+      if (numberId) query.numberId = numberId;
+      if (selectedVendor) query.PK = selectedVendor;
+      if (selectedDepartment) query.country = selectedDepartment;
+      if (selectedCity) query.city = selectedCity;
+      if (selectedTypeActivity) query.sector = selectedTypeActivity;
 
       query.action = requestType === 'search' ? 'SEARCH' : 'INFORM';
 
-      const clientRq = ClientService.getClient(query);
+      const vendorRq = VendorService.getVendor(query);
 
-      clientRq
+      vendorRq
         .then((res) => {
           if (res.data.length === 0) {
             setErrorMessage(
@@ -203,15 +192,15 @@ export function Search({
             const data = Array.isArray(res.data) ? res.data : [res.data];
 
             filesData = data.map((item) => [
-              item.typePerson,
               item.name,
-              `${item.typeId} ${item.numberId}${item.dv ? '-' + item.dv : ''}`,
-              item.countryName,
-              item.cityName,
+              item.numberId,
+              item.dv,
               item.address,
+              item.departmentName,
+              item.cityName,
               item.phone,
-              item.email || '',
-              item.web || '',
+              item.typeActivity,
+              item.experience,
             ]);
 
             sharedServices.exportPdf(
@@ -257,12 +246,11 @@ export function Search({
     hideContactSection();
 
     if (
-      (localStorage.getItem('selectedClient') === '' ||
-        localStorage.getItem('selectedClient') === null) &&
       !numberId &&
-      !selectedCountry &&
+      !selectedVendor &&
+      !selectedDepartment &&
       !selectedCity &&
-      !selectedSector
+      !selectedTypeActivity
     ) {
       setErrorMessage('Debe de ingresar al menos un criterio de búsqueda.');
       setIsLoading(false);
@@ -287,41 +275,71 @@ export function Search({
           </Typography>
           <form>
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <TextField
-                  disabled={selectedCity !== '' || selectedCountry !== '' || selectedSector !== ''}
+                  disabled={
+                    selectedCity !== '' ||
+                    selectedDepartment !== '' ||
+                    selectedTypeActivity !== '' ||
+                    selectedVendor !== ''
+                  }
                   fullWidth
                   size="small"
-                  label="Nit/Cédula sin DV"
+                  label="NIT sin DV"
                   value={numberId}
                   onChange={(e) => setNumberId(e.target.value)}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <TextField
                   defaultValue=""
-                  disabled={numberId !== ''}
+                  disabled={
+                    selectedCity !== '' ||
+                    selectedDepartment !== '' ||
+                    selectedTypeActivity !== '' ||
+                    numberId !== ''
+                  }
                   select
                   fullWidth
                   size="small"
-                  label="País"
-                  value={selectedCountry}
-                  onChange={(e) => setSelectedCountry(e.target.value)}
+                  label="Proveedor"
+                  value={selectedVendor}
+                  onChange={(e) => setSelectedVendor(e.target.value)}
                 >
                   <MenuItem value="">Seleccione</MenuItem>
-                  {countryList.map((user: any) => (
-                    <MenuItem key={user.PK} value={user.PK}>
-                      {user.name}
+                  {vendorList.map((vendor: any) => (
+                    <MenuItem key={vendor.PK} value={vendor.PK}>
+                      {vendor.name}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
                   defaultValue=""
-                  disabled={numberId !== ''}
+                  disabled={numberId !== '' || selectedVendor !== ''}
+                  select
+                  fullWidth
+                  size="small"
+                  label="Departamento"
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                >
+                  <MenuItem value="">Seleccione</MenuItem>
+                  {departmentList.map((department: any) => (
+                    <MenuItem key={department.PK} value={department.PK}>
+                      {department.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <TextField
+                  defaultValue=""
+                  disabled={numberId !== '' || selectedVendor !== ''}
                   select
                   fullWidth
                   size="small"
@@ -330,31 +348,31 @@ export function Search({
                   onChange={(e) => setSelectedCity(e.target.value)}
                 >
                   <MenuItem value="">Seleccione</MenuItem>
-                  {cityList.map((user: any) => (
-                    <MenuItem key={user.PK} value={user.PK}>
-                      {user.name}
+                  {cityList.map((city: any) => (
+                    <MenuItem key={city.PK} value={city.PK}>
+                      {city.name}
                     </MenuItem>
                   ))}
                 </TextField>
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6 }}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
                   defaultValue=""
-                  disabled={numberId !== ''}
+                  disabled={numberId !== '' || selectedVendor !== ''}
                   select
                   fullWidth
                   size="small"
-                  label="Sector"
-                  value={selectedSector}
-                  onChange={(e) => setSelectedSector(e.target.value)}
+                  label="Tipo de actividad"
+                  value={selectedTypeActivity}
+                  onChange={(e) => setSelectedTypeActivity(e.target.value)}
                 >
                   <MenuItem value="">Seleccione</MenuItem>
-                  {sectorList.map((user: any) => (
-                    <MenuItem key={user.PK} value={user.PK}>
-                      {user.name}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="DISTRIBUIDOR">DISTRIBUIDOR</MenuItem>
+                  <MenuItem value="INTERMEDIARIO">INTERMEDIARIO</MenuItem>
+                  <MenuItem value="FABRICANTE">FABRICANTE</MenuItem>
+                  <MenuItem value="IMPORTADOR">IMPORTADOR</MenuItem>
+                  <MenuItem value="SERVICIOS">SERVICIOS</MenuItem>
                 </TextField>
               </Grid>
 
@@ -395,7 +413,7 @@ export function Search({
                   <Grid size={{ xs: 6, sm: 4 }}>
                     <Button
                       sx={{ height: '100%' }}
-                      disabled={numberId !== '' || isLoading}
+                      disabled={numberId !== '' || selectedVendor !== '' || isLoading}
                       variant="outlined"
                       color="error"
                       loading={isLoading && requestType === 'PDF'}
@@ -410,7 +428,7 @@ export function Search({
 
                   <Grid size={{ xs: 6, sm: 4 }}>
                     <Button
-                      disabled={numberId !== '' || isLoading}
+                      disabled={numberId !== '' || selectedVendor !== '' || isLoading}
                       variant="outlined"
                       color="success"
                       loading={isLoading && requestType === 'EXCEL'}

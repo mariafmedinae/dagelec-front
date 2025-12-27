@@ -1,4 +1,4 @@
-export * from './client-registration-view';
+export * from './vendor-registration-view';
 
 export * from './contacts';
 

@@ -1,15 +1,15 @@
 import { CONFIG } from 'src/config-global';
 
-import { ClientRegistrationView } from 'src/sections/client-registration';
+import { VendorRegistrationView } from 'src/sections/vendor-registration';
 
 // ----------------------------------------------------------------------
 
 export default function Page() {
   return (
     <>
-      <title>{`Registro cliente - ${CONFIG.appName}`}</title>
+      <title>{`Registro proveedores - ${CONFIG.appName}`}</title>
 
-      <ClientRegistrationView />
+      <VendorRegistrationView />
     </>
   );
 }

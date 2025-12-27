@@ -19,7 +19,7 @@ import {
 import { _errors } from 'src/utils/input-errors';
 
 import sharedServices from 'src/services/shared/shared-services';
-import ClientService from 'src/services/client-registration/client-registration-service';
+import VendorService from 'src/services/vendor-registration/vendor-registration-service';
 
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
@@ -265,7 +265,7 @@ export function ContactForm({
     if (action === 'update') data.SK = contact.SK;
 
     const clientRq =
-      action === 'create' ? ClientService.createContact(data) : ClientService.updateContact(data);
+      action === 'create' ? VendorService.createContact(data) : VendorService.updateContact(data);
 
     clientRq
       .then((clientRs) => {
