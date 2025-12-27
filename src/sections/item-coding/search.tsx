@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import {
   Alert,
+  Autocomplete,
   Button,
   Card,
   CardContent,
@@ -37,7 +38,7 @@ import {
 interface Props {
   formPK: string;
   permissionsList: any;
-  groupList: any;
+  categoryList: any;
   savedData: any;
   handleUpdateAction: (PK: string) => void;
 }
@@ -45,7 +46,7 @@ interface Props {
 export function Search({
   formPK,
   permissionsList,
-  groupList,
+  categoryList,
   savedData,
   handleUpdateAction,
 }: Props) {
@@ -59,28 +60,32 @@ export function Search({
 
   const headLabel = [
     { id: '', label: '' },
-    { id: 'code', label: 'Código' },
-    { id: 'name', label: 'Nombre|info' },
+    { id: 'name', label: 'Nombre' },
     { id: 'unit', label: 'Unidad medida' },
-    { id: 'storageName', label: 'Condiciones almacenamiento' },
+    { id: 'status', label: 'Estado' },
   ];
 
-  const filesTitle = 'Informe Base de datos de productos';
+  const filesTitle = 'Informe Codificación productos y servicios';
   const filesHeaders = [
+    'Referencia',
+    'Categoría',
     'Grupo',
-    'Código',
-    'Artículo',
+    'Subgrupo',
+    'Nombre',
+    'Nombre largo',
+    'IVA',
     'Unidad medida',
-    '% Merma',
-    '% Utilizable',
-    'Peso neto',
-    'Almacenamiento',
-    'Calrias',
+    'Estado',
   ];
-  const pdfColsWidth = ['15%', '10%', '16%', '10%', '8%', '8%', '10%', '15%', '8%'];
+  const pdfColsWidth = ['8%', '13%', '13%', '13%', '12%', '15%', '7%', '12%', '7%'];
   let filesData;
 
+  const [groupList, setGroupList] = useState<any[]>([]);
+  const [subgroupList, setSubgroupList] = useState<any[]>([]);
+
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedSubgroup, setSelectedSubgroup] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -104,7 +109,19 @@ export function Search({
   useEffect(() => {
     if (savedData) {
       setErrorMessage('');
-      if (savedData.group === selectedGroup) {
+
+      let validation;
+
+      if (selectedCategory && selectedGroup && selectedSubgroup)
+        validation =
+          savedData.category === selectedCategory &&
+          savedData.group === selectedGroup &&
+          savedData.subgroup === selectedSubgroup;
+      else if (selectedCategory && selectedGroup)
+        validation = savedData.category === selectedCategory && savedData.group === selectedGroup;
+      else if (selectedCategory) validation = savedData.category === selectedCategory;
+
+      if (validation) {
         const index = searchResult.findIndex((item) => item.PK === savedData.PK);
 
         if (index !== -1) searchResult[index] = savedData;
@@ -112,7 +129,9 @@ export function Search({
           setSearchResult([savedData, ...searchResult]);
         }
       } else {
+        setSelectedCategory('');
         setSelectedGroup('');
+        setSelectedSubgroup('');
         setSearchResult([savedData]);
       }
 
@@ -123,7 +142,9 @@ export function Search({
   useEffect(() => {
     if (requestType && isLoading) {
       const query: Record<string, string> = {};
+      if (selectedCategory) query.category = selectedCategory;
       if (selectedGroup) query.group = selectedGroup;
+      if (selectedSubgroup) query.subgroup = selectedSubgroup;
       query.action = requestType === 'search' ? 'SEARCH' : 'INFORM';
 
       const itemRq = ItemService.getItem(query);
@@ -146,15 +167,15 @@ export function Search({
             const data = Array.isArray(res.data) ? res.data : [res.data];
 
             filesData = data.map((item) => [
+              item.reference,
+              item.categoryName,
               item.groupName,
-              item.code,
+              item.subgroupName,
               item.name,
-              item.unit || '',
-              item.lossPercentage,
-              item.usablePercentage,
-              item.weight,
-              item.storageName,
-              item.calories,
+              item.longName || '',
+              item.iva,
+              item.unit,
+              item.status,
             ]);
 
             sharedServices.exportPdf(
@@ -169,15 +190,15 @@ export function Search({
             const data = Array.isArray(res.data) ? res.data : [res.data];
 
             const columns = [
+              { header: 'Referencia', key: 'reference', width: 30 },
+              { header: 'Categoría', key: 'categoryName', width: 30 },
               { header: 'Grupo', key: 'groupName', width: 30 },
-              { header: 'Código', key: 'code', width: 30 },
-              { header: 'Artículo', key: 'name', width: 30 },
+              { header: 'Subgrupo', key: 'subgroupName', width: 30 },
+              { header: 'Nombre', key: 'name', width: 30 },
+              { header: 'Nombre largo', key: 'longName', width: 30 },
+              { header: 'IVA', key: 'iva', width: 30 },
               { header: 'Unidad medida', key: 'unit', width: 30 },
-              { header: '% Merma', key: 'lossPercentage', width: 30 },
-              { header: '% Utilizable', key: 'usablePercentage', width: 30 },
-              { header: 'Peso neto', key: 'weight', width: 30 },
-              { header: 'Almacenamiento', key: 'storageName', width: 30 },
-              { header: 'Calorias', key: 'calories', width: 30 },
+              { header: 'Estado', key: 'status', width: 30 },
             ];
 
             sharedServices.exportExcel(filesTitle, columns, data);
@@ -196,7 +217,7 @@ export function Search({
     setIsLoading(true);
     setErrorMessage('');
 
-    if (!selectedGroup) {
+    if (!selectedCategory && !selectedGroup && !selectedSubgroup) {
       setErrorMessage('Debe de ingresar al menos un criterio de búsqueda.');
       setIsLoading(false);
       return;
@@ -211,6 +232,51 @@ export function Search({
     setFilterName('');
   };
 
+  const getGroupList = async (categoryPK: string) => {
+    setSelectedGroup('');
+    setSelectedSubgroup('');
+
+    if (categoryPK !== '') {
+      const categoryRq = sharedServices.getList({
+        parent: categoryPK,
+        entity: 'GROUP',
+      });
+
+      categoryRq
+        .then((res) => {
+          setGroupList(res.data);
+        })
+        .catch((error) => {
+          setSelectedCategory('');
+          setErrorMessage(
+            'Hubo un error al cargar los grupos. Seleccione la categoría para intentar nuevamente.'
+          );
+        });
+    }
+  };
+
+  const getSubgroupList = async (groupPK: string) => {
+    setSelectedSubgroup('');
+
+    if (groupPK !== '') {
+      const groupRq = sharedServices.getList({
+        parent: groupPK,
+        entity: 'SUBGROUP',
+      });
+
+      groupRq
+        .then((res) => {
+          setSubgroupList(res.data);
+        })
+        .catch((error) => {
+          setSelectedGroup('');
+          setErrorMessage(
+            'Hubo un error al cargar los subgrupos. Seleccione el grupo para intentar nuevamente.'
+          );
+        });
+    }
+  };
+
   return (
     <>
       <Card>
@@ -220,23 +286,62 @@ export function Search({
           </Typography>
           <form>
             <Grid container spacing={2}>
-              <Grid size={12}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
                   defaultValue=""
                   select
                   fullWidth
                   size="small"
-                  label="Grupo"
-                  value={selectedGroup}
-                  onChange={(e) => setSelectedGroup(e.target.value)}
+                  label="Categoría"
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedCategory(value);
+                    setErrorMessage('');
+                    getGroupList(value);
+                  }}
                 >
                   <MenuItem value="">Seleccione</MenuItem>
-                  {groupList.map((group: any) => (
-                    <MenuItem key={group.PK} value={group.PK}>
-                      {group.name}
+                  {categoryList.map((category: any) => (
+                    <MenuItem key={category.PK} value={category.PK}>
+                      {category.name}
                     </MenuItem>
                   ))}
                 </TextField>
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Autocomplete
+                  size="small"
+                  options={groupList}
+                  noOptionsText="No hay resultados"
+                  getOptionLabel={(option) => option.name || ''}
+                  isOptionEqualToValue={(option, value) => option.PK === value.PK}
+                  value={groupList.find((item) => item.PK === selectedGroup) || null}
+                  onChange={(event, newValue) => {
+                    const value = newValue ? newValue.PK : '';
+                    setSelectedGroup(value);
+                    setErrorMessage('');
+                    getSubgroupList(value);
+                  }}
+                  renderInput={(params) => <TextField {...params} label="Grupo" />}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 12, md: 4 }}>
+                <Autocomplete
+                  size="small"
+                  options={subgroupList}
+                  noOptionsText="No hay resultados"
+                  getOptionLabel={(option) => option.name || ''}
+                  isOptionEqualToValue={(option, value) => option.PK === value.PK}
+                  value={subgroupList.find((item) => item.PK === selectedSubgroup) || null}
+                  onChange={(event, newValue) => {
+                    const value = newValue ? newValue.PK : '';
+                    setSelectedSubgroup(value);
+                  }}
+                  renderInput={(params) => <TextField {...params} label="Subgrupo" />}
+                />
               </Grid>
 
               {errorMessage !== '' && (

@@ -4,10 +4,10 @@ const permissions = [
     PK: 'ITEM',
     SK: 'ITEM',
     category: 'Menú Principal',
-    description: 'Acá podrás administrar la base de datos de productos.',
-    icon: 'fluent:food-grains-20-filled',
+    description: 'Acá podrás administrar la codificación de productos y servicios.',
+    icon: 'map:electrician',
     index: 2,
-    name: 'Base de datos de productos',
+    name: 'Codificación productos y servicios',
     path: 'item-coding',
     permissions: [
       {
@@ -22,17 +22,12 @@ const permissions = [
       },
       {
         PK: 'ITEM',
-        action: 'DELETE',
+        action: 'CREATE',
         type: 'ALL',
       },
       {
         PK: 'ITEM',
         action: 'SEARCH',
-        type: 'ALL',
-      },
-      {
-        PK: 'ITEM',
-        action: 'CREATE',
         type: 'ALL',
       },
     ],

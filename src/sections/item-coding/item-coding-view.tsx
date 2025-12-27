@@ -20,7 +20,7 @@ export function ItemCodingView() {
   const [globalError, setGlobalError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [groupList, setGroupList] = useState([]);
+  const [categoryList, setCategoryList] = useState([]);
 
   const [openForm, setOpenForm] = useState(false);
   const [formAction, setFormAction] = useState('');
@@ -37,11 +37,11 @@ export function ItemCodingView() {
       setGlobalError(false);
 
       if (verifyPermission(permissionsList, formPK, 'SEARCH')) {
-        const groupRq = sharedServices.getList({ entity: 'GROUP' });
+        const categoryRq = sharedServices.getList({ entity: 'CATEGORY' });
 
-        groupRq
+        categoryRq
           .then((res) => {
-            setGroupList(res.data);
+            setCategoryList(res.data);
             setIsLoading(false);
             setGlobalError(false);
             setTimeout(() => setLoadLists(false), 500);
@@ -140,7 +140,7 @@ export function ItemCodingView() {
           <Search
             formPK={formPK}
             permissionsList={permissionsList}
-            groupList={groupList}
+            categoryList={categoryList}
             savedData={savedData}
             handleUpdateAction={(data) => onUpdateForm(data)}
           />

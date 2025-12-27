@@ -19,6 +19,7 @@ interface Props {
   includesCode?: boolean;
   label: string;
   entity: string;
+  parent?: string;
   currentData: any;
   onCloseDialogAdd: () => void;
   onDataSend: (data: any) => void;
@@ -29,6 +30,7 @@ export function AddList({
   includesCode = false,
   label,
   entity,
+  parent,
   currentData,
   onCloseDialogAdd,
   onDataSend,
@@ -102,6 +104,7 @@ export function AddList({
     setErrorMessage('');
 
     if (!includesCode) delete data.code;
+    if (parent) data.parent = parent;
 
     compareData(data);
 

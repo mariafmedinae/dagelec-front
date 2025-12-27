@@ -11,6 +11,4 @@ export const _errors = {
   min: 'Debe ser mayor o igual a',
   max: 'Debe ser inferior o igual a',
   decimals: 'Número entero con máximo 2 decimales',
-  iva: 'Si IVA es diferente a 0, Impoconsumo debe ser 0',
-  impoconsumo: 'Si Impoconsumo es diferente a 0, IVA debe ser 0',
 };
