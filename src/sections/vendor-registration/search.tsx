@@ -32,6 +32,8 @@ import {
   useTable,
 } from 'src/components/data-table';
 
+import VendorPrint from './vendor-print';
+
 // ----------------------------------------------------------------------
 
 interface Props {
@@ -68,7 +70,7 @@ export function Search({
   const headLabel = [
     { id: '', label: '' },
     { id: 'name', label: 'Nombre' },
-    { id: 'typeActivity', label: 'NIT' },
+    { id: 'typeActivity', label: 'Tipo de actividad' },
     { id: 'cityName', label: 'Ciudad' },
     { id: 'phone', label: 'Teléfono' },
   ];
@@ -100,6 +102,8 @@ export function Search({
   const [requestType, setRequestType] = useState('');
   const [searchResult, setSearchResult] = useState<VendorProps[]>([]);
 
+  const [isPrintingVendor, setIsPrintingVendor] = useState(false);
+
   const tableActions = getActionsList(permissionsList, formPK);
 
   const table = useTable();
@@ -121,20 +125,22 @@ export function Search({
 
       if (selectedDepartment && selectedCity && selectedTypeActivity)
         validation =
-          savedData.country === selectedDepartment &&
+          savedData.department === selectedDepartment &&
           savedData.city === selectedCity &&
-          savedData.sector === selectedTypeActivity;
+          savedData.typeActivity === selectedTypeActivity;
       if (selectedDepartment && selectedCity)
-        validation = savedData.country === selectedDepartment && savedData.city === selectedCity;
+        validation = savedData.department === selectedDepartment && savedData.city === selectedCity;
       if (selectedDepartment && selectedTypeActivity)
         validation =
-          savedData.country === selectedDepartment && savedData.sector === selectedTypeActivity;
+          savedData.department === selectedDepartment &&
+          savedData.typeActivity === selectedTypeActivity;
       if (selectedCity && selectedTypeActivity)
-        validation = savedData.city === selectedCity && savedData.sector === selectedTypeActivity;
+        validation =
+          savedData.city === selectedCity && savedData.typeActivity === selectedTypeActivity;
       else if (numberId) validation = savedData.numberId === numberId;
-      else if (selectedDepartment) validation = savedData.country === selectedDepartment;
+      else if (selectedDepartment) validation = savedData.department === selectedDepartment;
       else if (selectedCity) validation = savedData.city === selectedCity;
-      else if (selectedTypeActivity) validation = savedData.sector === selectedTypeActivity;
+      else if (selectedTypeActivity) validation = savedData.typeActivity === selectedTypeActivity;
       else if (
         localStorage.getItem('selectedVendor') !== '' ||
         localStorage.getItem('selectedVendor') !== null
@@ -166,9 +172,9 @@ export function Search({
 
       if (numberId) query.numberId = numberId;
       if (selectedVendor) query.PK = selectedVendor;
-      if (selectedDepartment) query.country = selectedDepartment;
+      if (selectedDepartment) query.department = selectedDepartment;
       if (selectedCity) query.city = selectedCity;
-      if (selectedTypeActivity) query.sector = selectedTypeActivity;
+      if (selectedTypeActivity) query.typeActivity = selectedTypeActivity;
 
       query.action = requestType === 'search' ? 'SEARCH' : 'INFORM';
 
@@ -214,18 +220,37 @@ export function Search({
           } else {
             const data = Array.isArray(res.data) ? res.data : [res.data];
 
+            // PENDIENTE
             const columns = [
-              { header: 'Persona', key: 'typePerson', width: 30 },
-              { header: 'Nombre/Razón social', key: 'name', width: 30 },
-              { header: 'Tipo identificación', key: 'typeId', width: 30 },
-              { header: 'Número', key: 'numberId', width: 30 },
-              { header: 'DV', key: 'dv', width: 30 },
-              { header: 'País', key: 'countryName', width: 30 },
-              { header: 'Ciudad', key: 'cityName', width: 30 },
-              { header: 'Dirección', key: 'address', width: 30 },
-              { header: 'Teléfono', key: 'phone', width: 30 },
-              { header: 'Email', key: 'email', width: 30 },
-              { header: 'Web', key: 'web', width: 30 },
+              { header: 'Persona', key: 'name', width: 30 },
+              { header: 'Nombre/Razón social', key: 'numberId', width: 30 },
+              { header: 'Tipo identificación', key: 'dv', width: 30 },
+              { header: 'Número', key: 'address', width: 30 },
+              { header: 'DV', key: 'cityName', width: 30 },
+              { header: 'País', key: 'departmentName', width: 30 },
+              { header: 'Ciudad', key: 'phone', width: 30 },
+              { header: 'Dirección', key: 'typeActivity', width: 30 },
+              { header: 'Teléfono', key: 'description', width: 30 },
+              { header: 'Email', key: 'experience', width: 30 },
+              { header: 'Web', key: 'ciiu', width: 30 },
+              { header: 'Persona', key: 'term', width: 30 },
+              { header: 'Nombre/Razón social', key: 'discount', width: 30 },
+              { header: 'Tipo identificación', key: 'bank', width: 30 },
+              { header: 'Número', key: 'accountNumber', width: 30 },
+              { header: 'DV', key: 'accountType', width: 30 },
+              { header: 'País', key: 'ivaType', width: 30 },
+              { header: 'Ciudad', key: 'incomeTaxPayer', width: 30 },
+              { header: 'Dirección', key: 'bigTaxPayer', width: 30 },
+              { header: 'Teléfono', key: 'resolutionBigTaxPayer', width: 30 },
+              { header: 'Email', key: 'dateBigTaxPayer', width: 30 },
+              { header: 'Web', key: 'selfRetaining', width: 30 },
+              { header: 'DV', key: 'resolutionSelfRetaining', width: 30 },
+              { header: 'País', key: 'dateSelfRetaining', width: 30 },
+              { header: 'Ciudad', key: 'industryTaxResponsible', width: 30 },
+              { header: 'Dirección', key: 'industryTaxCity', width: 30 },
+              { header: 'Teléfono', key: 'industryTaxCode', width: 30 },
+              { header: 'Email', key: 'industryTaxRate', width: 30 },
+              { header: 'Web', key: 'legalRepresentative', width: 30 },
             ];
 
             sharedServices.exportExcel(filesTitle, columns, data);
@@ -258,6 +283,23 @@ export function Search({
     }
 
     setRequestType(request);
+  };
+
+  const handlePrintAction = (PK: string) => {
+    setIsPrintingVendor(true);
+
+    const query: { PK: string; type: string; action: string } = {
+      PK: PK,
+      type: 'P',
+      action: 'PRINT',
+    };
+
+    const vendorRq = VendorService.getVendor(query);
+
+    vendorRq.then(async (res) => {
+      await sharedServices.exportPdf(<VendorPrint />);
+      setIsPrintingVendor(false);
+    });
   };
 
   const resertTableFilters = () => {
@@ -480,6 +522,8 @@ export function Search({
                           tableActions={tableActions}
                           onUpdateAction={() => handleUpdateAction(row.PK)}
                           onManageAction={() => handleManageAction(row.PK)}
+                          isCreatingPrint={isPrintingVendor}
+                          onPrintAction={() => handlePrintAction(row.PK)}
                         />
                       ))}
                   </TableBody>

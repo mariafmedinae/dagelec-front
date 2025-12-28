@@ -32,46 +32,46 @@ interface Props {
   openForm: boolean;
   action: string;
   vendorPK: string;
-  contact: any;
+  reference: any;
   onCloseForm: () => void;
   handleSavedData: (data: any) => void;
 }
 
-export function ContactForm({
+export function ReferenceForm({
   openForm,
   action,
   vendorPK,
-  contact,
+  reference,
   onCloseForm,
   handleSavedData,
 }: Props) {
   const schema = z.object({
-    typeContact: z.string().nonempty(_errors.required),
-    name: z
+    client: z.string().nonempty(_errors.required).max(255, _errors.maxLength),
+    address: z
+      .string()
+      .nonempty(_errors.required)
+      .regex(/^[a-zA-Z0-9-#áéíóúÁÉÍÓÚ ]+$/, _errors.regex)
+      .max(50, _errors.maxLength),
+    contact: z
       .string()
       .nonempty(_errors.required)
       .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ&0-9-. ]+$/, _errors.regex)
-      .max(255, _errors.maxLength),
-    cellphone: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[a-zA-Z0-9- ]+$/, _errors.regex)
       .max(50, _errors.maxLength),
+    city: z.string().nonempty(_errors.required),
     phone: z
       .string()
       .nonempty(_errors.required)
       .regex(/^[a-zA-Z0-9- ]+$/, _errors.regex)
       .max(50, _errors.maxLength),
-    email: z.string().nonempty(_errors.required).email(_errors.email).max(100, _errors.maxLength),
   });
 
   const defaultValues = {
     PK: '',
-    typeContact: '',
-    name: '',
-    cellphone: '',
+    client: '',
+    address: '',
+    contact: '',
+    city: '',
     phone: '',
-    email: '',
   };
 
   type FormData = z.infer<typeof schema>;
@@ -80,6 +80,12 @@ export function ContactForm({
   const [isLoading, setIsLoading] = useState(true);
 
   const [openDialog, setOpenDialog] = useState(false);
+  const [cityList, setCityList] = useState<any[]>([]);
+
+  const [openDialogAdd, setOpenDialogAdd] = useState(false);
+  const [lableAdd, setLabelAdd] = useState('');
+  const [entityAdd, setEntityAdd] = useState('');
+  const [currentAddData, setCurrentAddData] = useState<any[]>([]);
 
   const [isSavingData, setIsSavingData] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -88,8 +94,10 @@ export function ContactForm({
   const {
     handleSubmit,
     reset,
+    setValue,
     control,
     formState: { errors },
+    clearErrors,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -106,12 +114,28 @@ export function ContactForm({
       cleanMessages();
       setOpenDialog(true);
 
-      setTimeout(() => {
-        if (action === 'update') reset(contact);
+      const fetchData = async () => {
+        const axiosRoutes = [sharedServices.getList({ entity: 'CITY' })];
 
-        setIsLoading(false);
-        setGlobalError(false);
-      }, 500);
+        axios
+          .all(axiosRoutes)
+          .then(
+            axios.spread((cityRs) => {
+              setCityList(cityRs.data);
+
+              if (action === 'update') reset(reference);
+
+              setIsLoading(false);
+              setGlobalError(false);
+            })
+          )
+          .catch((error) => {
+            setIsLoading(false);
+            setGlobalError(true);
+          });
+      };
+
+      fetchData();
     }
   }, [openForm]);
 
@@ -119,7 +143,23 @@ export function ContactForm({
     setOpenDialog(false);
     onCloseForm();
     reset();
-    cleanMessages();
+    setSuccessMessage('');
+    setErrorMessage('');
+  };
+
+  const onOpenDialogAdd = (entity: string, label: string, data: any) => {
+    setLabelAdd(label);
+    setEntityAdd(entity);
+    setCurrentAddData(() => data);
+
+    setOpenDialogAdd(true);
+  };
+
+  const setInputAddData = (data: any) => {
+    if (entityAdd === 'CITY') {
+      setCityList((prev) => [...prev, data.data]);
+      setValue(`city`, data.data.PK);
+    }
   };
 
   const cleanMessages = () => {
@@ -129,22 +169,25 @@ export function ContactForm({
 
   const onSubmit = async (data: FieldValues) => {
     setIsSavingData(true);
-    cleanMessages();
+    setSuccessMessage('');
+    setErrorMessage('');
 
     data.PK = vendorPK;
-    if (action === 'update') data.SK = contact.SK;
+    if (action === 'update') data.SK = reference.SK;
 
-    const contactRq =
-      action === 'create' ? VendorService.createContact(data) : VendorService.updateContact(data);
+    const referenceRq =
+      action === 'create'
+        ? VendorService.createReference(data)
+        : VendorService.updateReference(data);
 
-    contactRq
-      .then((contactRs) => {
+    referenceRq
+      .then((referenceRs) => {
         setSuccessMessage('Operación realizada con éxito');
         setIsSavingData(false);
         if (action === 'create') {
           reset(defaultValues);
         }
-        handleSavedData(contactRs.data);
+        handleSavedData(referenceRs.data);
       })
       .catch((error) => {
         if (error.response) setErrorMessage(error.response.data);
@@ -157,7 +200,7 @@ export function ContactForm({
     <ModalDialog
       isOpen={openDialog}
       handleClose={handleDialogClose}
-      title={action === 'create' ? 'Crear contacto' : 'Actualizar contacto'}
+      title={action === 'create' ? 'Crear referencia' : 'Actualizar referencia'}
     >
       {isLoading && <Loading />}
 
@@ -180,38 +223,33 @@ export function ContactForm({
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <Controller
-                  name="typeContact"
+                  name="client"
                   control={control}
                   render={({ field }) => (
                     <TextField
-                      select
                       fullWidth
                       size="small"
-                      label="Tipo de contacto *"
+                      label="Cliente *"
                       {...field}
-                      error={Boolean(errors.typeContact)}
-                      helperText={errors.typeContact && errors.typeContact.message}
-                    >
-                      <MenuItem value="">Seleccione</MenuItem>
-                      <MenuItem value="COMERCIAL">COMERCIAL</MenuItem>
-                      <MenuItem value="CONTABLE">CONTABLE</MenuItem>
-                    </TextField>
+                      error={Boolean(errors.client)}
+                      helperText={errors.client && errors.client.message}
+                    />
                   )}
                 />
               </Grid>
 
               <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <Controller
-                  name="name"
+                  name="address"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       fullWidth
                       size="small"
-                      label="Nombre *"
+                      label="Dirección *"
                       {...field}
-                      error={Boolean(errors.name)}
-                      helperText={errors.name && errors.name.message}
+                      error={Boolean(errors.address)}
+                      helperText={errors.address && errors.address.message}
                     />
                   )}
                 />
@@ -219,22 +257,67 @@ export function ContactForm({
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="cellphone"
+                  name="contact"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       fullWidth
                       size="small"
-                      label="Celular *"
+                      label="Contacto *"
                       {...field}
-                      error={Boolean(errors.cellphone)}
-                      helperText={errors.cellphone && errors.cellphone.message}
+                      error={Boolean(errors.contact)}
+                      helperText={errors.contact && errors.contact.message}
                     />
                   )}
                 />
               </Grid>
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="city"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Ciudad *"
+                      {...field}
+                      error={Boolean(errors.city)}
+                      helperText={errors.city && errors.city.message}
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                onClick={() => onOpenDialogAdd('CITY', 'ciudad', cityList)}
+                                edge="end"
+                              >
+                                <Iconify icon="mingcute:add-line" />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      sx={{
+                        '& .MuiSvgIcon-root': {
+                          position: 'absolute',
+                          right: '35px',
+                        },
+                      }}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      {cityList.map((city: any) => (
+                        <MenuItem key={city.PK} value={city.PK}>
+                          {city.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 12, md: 4 }}>
                 <Controller
                   name="phone"
                   control={control}
@@ -246,23 +329,6 @@ export function ContactForm({
                       {...field}
                       error={Boolean(errors.phone)}
                       helperText={errors.phone && errors.phone.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 4 }}>
-                <Controller
-                  name="email"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Email *"
-                      {...field}
-                      error={Boolean(errors.email)}
-                      helperText={errors.email && errors.email.message}
                     />
                   )}
                 />
@@ -307,11 +373,22 @@ export function ContactForm({
                   loadingPosition="start"
                   fullWidth
                 >
-                  {action === 'create' ? 'Crear contacto' : 'Actualizar contacto'}
+                  {action === 'create' ? 'Crear referencia' : 'Actualizar referencia'}
                 </Button>
               </Grid>
             </Grid>
           </form>
+
+          {openDialogAdd && (
+            <AddList
+              openDialog={openDialogAdd}
+              label={lableAdd}
+              entity={entityAdd}
+              currentData={currentAddData}
+              onCloseDialogAdd={() => setOpenDialogAdd(false)}
+              onDataSend={(data) => setInputAddData(data)}
+            />
+          )}
         </>
       )}
     </ModalDialog>

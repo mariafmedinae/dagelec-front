@@ -1,9 +1,15 @@
+import 'dayjs/locale/es';
+
 import { z } from 'zod';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, FieldValues, Controller } from 'react-hook-form';
+import { useForm, FieldValues, Controller, useWatch } from 'react-hook-form';
 
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import {
   Alert,
   Button,
@@ -17,7 +23,6 @@ import {
 } from '@mui/material';
 
 import { _errors } from 'src/utils/input-errors';
-import { compressFile } from 'src/utils/compress-files';
 
 import sharedServices from 'src/services/shared/shared-services';
 import VendorService from 'src/services/vendor-registration/vendor-registration-service';
@@ -38,74 +43,170 @@ interface Props {
 }
 
 export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Props) {
-  const schema = z.object({
-    typePerson: z.string().nonempty(_errors.required),
-    name: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ ]+$/, _errors.regex)
-      .max(255, _errors.maxLength),
-    typeId: z.string().nonempty(_errors.required),
-    numberId: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[0-9]+$/, _errors.regex)
-      .max(15, _errors.maxLength),
-    dv: z
-      .string()
-      .regex(/^[0-9]+$/, _errors.regex)
-      .max(1, _errors.maxLength)
-      .optional()
-      .or(z.literal('')),
-    country: z.string().nonempty(_errors.required),
-    city: z.string().nonempty(_errors.required),
-    sector: z.string().optional().or(z.literal('')),
-    phone: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[a-zA-Z0-9- ]+$/, _errors.regex)
-      .max(50, _errors.maxLength),
-    address: z
-      .string()
-      .nonempty(_errors.required)
-      .regex(/^[a-zA-Z0-9-#áéíóúÁÉÍÓÚ ]+$/, _errors.regex)
-      .max(255, _errors.maxLength),
-    email: z.string().email(_errors.email).max(100, _errors.maxLength).optional().or(z.literal('')),
-    web: z
-      .string()
-      .regex(/^[a-zA-Z0-9-. ]+$/, _errors.regex)
-      .max(255, _errors.maxLength)
-      .optional()
-      .or(z.literal('')),
-    buttonsColor: z.string().optional().or(z.literal('')),
-    titlesColor: z.string().optional().or(z.literal('')),
-    titlesPdfColor: z.string().optional().or(z.literal('')),
-    backgroundPdfColor: z.string().optional().or(z.literal('')),
-    borderTablesPdfColor: z.string().optional().or(z.literal('')),
-    fileExtension: z.string().optional().or(z.literal('')),
-    fileExtensionPdf: z.string().optional().or(z.literal('')),
-  });
+  const schema = z
+    .object({
+      name: z
+        .string()
+        .nonempty(_errors.required)
+        .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ&0-9-. ]+$/, _errors.regex)
+        .max(255, _errors.maxLength),
+      numberId: z
+        .string()
+        .nonempty(_errors.required)
+        .regex(/^[0-9]+$/, _errors.regex)
+        .max(15, _errors.maxLength),
+      dv: z
+        .string()
+        .nonempty(_errors.required)
+        .regex(/^[0-9]+$/, _errors.regex)
+        .max(1, _errors.maxLength),
+      address: z
+        .string()
+        .nonempty(_errors.required)
+        .regex(/^[a-zA-Z0-9-#áéíóúÁÉÍÓÚ ]+$/, _errors.regex)
+        .max(255, _errors.maxLength),
+      city: z.string().nonempty(_errors.required),
+      department: z.string().nonempty(_errors.required),
+      phone: z
+        .string()
+        .nonempty(_errors.required)
+        .regex(/^[a-zA-Z0-9- ]+$/, _errors.regex)
+        .max(50, _errors.maxLength),
+      typeActivity: z.string().nonempty(_errors.required),
+      description: z.string().nonempty(_errors.required).max(510, _errors.maxLength),
+      experience: z.string().nonempty(_errors.required).max(50, _errors.maxLength),
+      ciiu: z
+        .string()
+        .nonempty(_errors.required)
+        .regex(/^[0-9.]+$/, _errors.regex)
+        .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
+        .refine((val) => !(Number(val) > 999999), {
+          message: `${_errors.max} 999.999`,
+        })
+        .refine((val) => !(Number(val) < 0), {
+          message: `${_errors.min} 0`,
+        }),
+      term: z.string().nonempty(_errors.required).max(100, _errors.maxLength),
+      discount: z
+        .string()
+        .nonempty(_errors.required)
+        .regex(/^[0-9.]+$/, _errors.regex)
+        .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
+        .refine((val) => !(Number(val) > 100), {
+          message: `${_errors.max} 100`,
+        })
+        .refine((val) => !(Number(val) < 0), {
+          message: `${_errors.min} 0`,
+        }),
+      bank: z.string().nonempty(_errors.required).max(100, _errors.maxLength),
+      accountNumber: z.string().nonempty(_errors.required).max(50, _errors.maxLength),
+      accountType: z.string().nonempty(_errors.required),
+      ivaType: z.string().nonempty(_errors.required),
+      incomeTaxPayer: z.string().nonempty(_errors.required),
+      bigTaxPayer: z.string().nonempty(_errors.required),
+      resolutionBigTaxPayer: z.string().max(50, _errors.maxLength).optional().or(z.literal('')),
+      dateBigTaxPayer: z.string().optional().or(z.literal('')),
+      selfRetaining: z.string().nonempty(_errors.required),
+      resolutionSelfRetaining: z.string().max(50, _errors.maxLength).optional().or(z.literal('')),
+      dateSelfRetaining: z.string().optional().or(z.literal('')),
+      industryTaxResponsible: z.string().nonempty(_errors.required),
+      industryTaxCity: z.string().optional().or(z.literal('')),
+      industryTaxCode: z.string().max(50, _errors.maxLength).optional().or(z.literal('')),
+      industryTaxRate: z.string().max(50, _errors.maxLength).optional().or(z.literal('')),
+      legalRepresentative: z
+        .string()
+        .nonempty(_errors.required)
+        .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ&0-9-. ]+$/, _errors.regex)
+        .max(255, _errors.maxLength),
+    })
+    .superRefine((data, ctx) => {
+      if (data.bigTaxPayer === 'SI' && !data.resolutionBigTaxPayer) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: _errors.required,
+          path: ['resolutionBigTaxPayer'],
+        });
+      }
+
+      if (data.bigTaxPayer === 'SI' && !data.dateBigTaxPayer) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: _errors.required,
+          path: ['dateBigTaxPayer'],
+        });
+      }
+
+      if (data.selfRetaining === 'SI' && !data.resolutionSelfRetaining) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: _errors.required,
+          path: ['resolutionSelfRetaining'],
+        });
+      }
+
+      if (data.selfRetaining === 'SI' && !data.dateSelfRetaining) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: _errors.required,
+          path: ['dateSelfRetaining'],
+        });
+      }
+
+      if (data.industryTaxResponsible === 'SI' && !data.industryTaxCity) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: _errors.required,
+          path: ['industryTaxCity'],
+        });
+      }
+
+      if (data.industryTaxResponsible === 'SI' && !data.industryTaxCode) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: _errors.required,
+          path: ['industryTaxCode'],
+        });
+      }
+
+      if (data.industryTaxResponsible === 'SI' && !data.industryTaxRate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: _errors.required,
+          path: ['industryTaxRate'],
+        });
+      }
+    });
 
   const defaultValues = {
-    typePerson: '',
     name: '',
-    typeId: '',
     numberId: '',
     dv: '',
-    country: '',
-    city: '',
-    sector: '',
-    phone: '',
     address: '',
-    email: '',
-    web: '',
-    buttonsColor: undefined,
-    titlesColor: undefined,
-    titlesPdfColor: undefined,
-    backgroundPdfColor: undefined,
-    borderTablesPdfColor: undefined,
-    fileExtension: '',
-    fileExtensionPdf: '',
+    city: '',
+    department: '',
+    phone: '',
+    typeActivity: '',
+    description: '',
+    experience: '',
+    ciiu: '',
+    term: '',
+    discount: '',
+    bank: '',
+    accountNumber: '',
+    accountType: '',
+    ivaType: '',
+    incomeTaxPayer: '',
+    bigTaxPayer: '',
+    resolutionBigTaxPayer: '',
+    dateBigTaxPayer: '',
+    selfRetaining: '',
+    resolutionSelfRetaining: '',
+    dateSelfRetaining: '',
+    industryTaxResponsible: '',
+    industryTaxCity: '',
+    industryTaxCode: '',
+    industryTaxRate: '',
+    legalRepresentative: '',
   };
 
   type FormData = z.infer<typeof schema>;
@@ -114,30 +215,17 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   const [isLoading, setIsLoading] = useState(true);
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [countryList, setCountryList] = useState<any[]>([]);
+  const [departmentList, setDepartmentList] = useState<any[]>([]);
   const [cityList, setCityList] = useState<any[]>([]);
-  const [sectorList, setSectorList] = useState<any[]>([]);
 
   const [openDialogAdd, setOpenDialogAdd] = useState(false);
   const [lableAdd, setLabelAdd] = useState('');
   const [entityAdd, setEntityAdd] = useState('');
   const [currentAddData, setCurrentAddData] = useState<any[]>([]);
 
-  const [fileLogoName, setFileLogoName] = useState<string | undefined>('');
-  const [urlLogo, setUrlLogo] = useState<string | undefined>('');
-  const [fileLogo, setFileLogo] = useState<File>();
-  const [compressedLogoFile, setCompressedLogoFile] = useState<File>();
-
-  const [fileHeaderName, setFileHeaderName] = useState<string | undefined>('');
-  const [urlHeader, setUrlHeader] = useState<string | undefined>('');
-  const [fileHeader, setFileHeader] = useState<File>();
-  const [compressedHeaderFile, setCompressedHeaderFile] = useState<File>();
-  const [isCompressingFile, setIsCompressingFile] = useState<boolean>(false);
-
   const [isSavingData, setIsSavingData] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [attachedErrorMessage, seAtttachedErrorMessage] = useState('');
 
   const {
     handleSubmit,
@@ -145,6 +233,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     setValue,
     control,
     formState: { errors },
+    clearErrors,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -152,24 +241,23 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     mode: 'onChange',
   });
 
+  const bigTaxPayerValue = useWatch({ control, name: 'bigTaxPayer' });
+  const selfRetainingValue = useWatch({ control, name: 'selfRetaining' });
+  const industryTaxResponsibleValue = useWatch({ control, name: 'industryTaxResponsible' });
+
   useEffect(() => {
     if (openForm) {
       setIsLoading(true);
       setGlobalError(false);
 
       reset(defaultValues);
-      setUrlLogo('');
-      setUrlHeader('');
-      setFileLogoName('');
-      setFileHeaderName('');
       cleanMessages();
       setOpenDialog(true);
 
       const fetchData = async () => {
         const axiosRoutes = [
-          sharedServices.getList({ entity: 'COUNTRY' }),
+          sharedServices.getList({ entity: 'DEPARTMENT' }),
           sharedServices.getList({ entity: 'CITY' }),
-          sharedServices.getList({ entity: 'SECTOR' }),
         ];
 
         if (action === 'update') {
@@ -179,19 +267,16 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
         axios
           .all(axiosRoutes)
           .then(
-            axios.spread((countryRs, cityRs, sectorRs, clientRs) => {
-              setCountryList(countryRs.data);
+            axios.spread((departmentRs, cityRs, vendorRs) => {
+              setDepartmentList(departmentRs.data);
               setCityList(cityRs.data);
-              setSectorList(sectorRs.data);
 
-              if (action === 'update' && clientRs?.data) {
-                const data = clientRs.data;
-                if (data.dv) data.dv = String(data.dv);
+              if (action === 'update' && vendorRs?.data) {
+                const data = vendorRs.data;
+                data.dv = String(data.dv);
+                data.ciiu = String(data.ciiu);
+                data.discount = String(data.discount);
                 reset(data);
-                setValue('fileExtension', '');
-                setValue('fileExtensionPdf', '');
-                if (clientRs.data.getUrlLogo) setUrlLogo(clientRs.data.getUrlLogo);
-                if (clientRs.data.getUrlHeader) setUrlHeader(clientRs.data.getUrlHeader);
               }
 
               setIsLoading(false);
@@ -209,38 +294,29 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   }, [openForm]);
 
   useEffect(() => {
-    if (fileLogo) {
-      setIsCompressingFile(true);
-      const getNewFile = async () => {
-        const newFile = await compressFile(fileLogo, 'auto');
-
-        setCompressedLogoFile(newFile);
-        setFileLogoName(newFile.name);
-        setValue(`fileExtension`, newFile.name.split('.').pop());
-        setUrlLogo('');
-        setTimeout(() => setIsCompressingFile(false), 1000);
-      };
-
-      getNewFile();
+    if (bigTaxPayerValue !== 'SI') {
+      setValue('resolutionBigTaxPayer', '');
+      setValue('dateBigTaxPayer', '');
+      clearErrors(['resolutionBigTaxPayer', 'dateBigTaxPayer']);
     }
-  }, [fileLogo]);
+  }, [bigTaxPayerValue]);
 
   useEffect(() => {
-    if (fileHeader) {
-      setIsCompressingFile(true);
-      const getNewFile = async () => {
-        const newFile = await compressFile(fileHeader, 1000);
-
-        setCompressedHeaderFile(newFile);
-        setFileHeaderName(newFile.name);
-        setValue(`fileExtensionPdf`, newFile.name.split('.').pop());
-        setUrlHeader('');
-        setTimeout(() => setIsCompressingFile(false), 1000);
-      };
-
-      getNewFile();
+    if (selfRetainingValue !== 'SI') {
+      setValue('resolutionSelfRetaining', '');
+      setValue('dateSelfRetaining', '');
+      clearErrors(['resolutionSelfRetaining', 'dateSelfRetaining']);
     }
-  }, [fileHeader]);
+  }, [selfRetainingValue]);
+
+  useEffect(() => {
+    if (industryTaxResponsibleValue !== 'SI') {
+      setValue('industryTaxCity', '');
+      setValue('industryTaxCode', '');
+      setValue('industryTaxRate', '');
+      clearErrors(['industryTaxCity', 'industryTaxCode', 'industryTaxRate']);
+    }
+  }, [industryTaxResponsibleValue]);
 
   const handleDialogClose = () => {
     setOpenDialog(false);
@@ -256,30 +332,18 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   };
 
   const setInputAddData = (data: any) => {
-    if (entityAdd === 'COUNTRY') {
-      setCountryList((prev) => [...prev, data.data]);
-      setValue(`country`, data.data.PK);
+    if (entityAdd === 'DEPARTMENT') {
+      setDepartmentList((prev) => [...prev, data.data]);
+      setValue(`department`, data.data.PK);
     } else if (entityAdd === 'CITY') {
       setCityList((prev) => [...prev, data.data]);
       setValue(`city`, data.data.PK);
-    } else if (entityAdd === 'SECTOR') {
-      setSectorList((prev) => [...prev, data.data]);
-      setValue(`sector`, data.data.PK);
     }
-  };
-
-  const onFileLogoSelected = (event: any) => {
-    setFileLogo(event.target.files[0]);
-  };
-
-  const onFileHeaderSelected = (event: any) => {
-    setFileHeader(event.target.files[0]);
   };
 
   const cleanMessages = () => {
     setSuccessMessage('');
     setErrorMessage('');
-    seAtttachedErrorMessage('');
   };
 
   const afterSubmit = () => {
@@ -294,66 +358,31 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     setSuccessMessage('');
     setErrorMessage('');
 
-    if (!data.dv) delete data.dv;
-    else data.dv = Number(data.dv);
-    if (!data.sector) delete data.sector;
-    if (!data.email) delete data.email;
-    if (!data.web) delete data.web;
-    if (!data.buttonsColor) delete data.buttonsColor;
-    if (!data.titlesColor) delete data.titlesColor;
-    if (!data.titlesPdfColor) delete data.titlesPdfColor;
-    if (!data.backgroundPdfColor) delete data.backgroundPdfColor;
-    if (!data.borderTablesPdfColor) delete data.borderTablesPdfColor;
-    if (!data.fileExtension) delete data.fileExtension;
-    if (!data.fileExtensionPdf) delete data.fileExtensionPdf;
+    data.dv = Number(data.dv);
+    data.ciiu = Number(data.ciiu);
+    data.discount = Number(data.discount);
+
+    if (!data.resolutionBigTaxPayer) delete data.resolutionBigTaxPayer;
+    if (!data.dateBigTaxPayer) delete data.dateBigTaxPayer;
+    if (!data.resolutionSelfRetaining) delete data.resolutionSelfRetaining;
+    if (!data.dateSelfRetaining) delete data.dateSelfRetaining;
+    if (!data.industryTaxCity) delete data.industryTaxCity;
+    if (!data.industryTaxCode) delete data.industryTaxCode;
+    if (!data.industryTaxRate) delete data.industryTaxRate;
     if (action === 'update') data.PK = PK;
 
-    const clientRq =
+    const vendorRq =
       action === 'create' ? VendorService.createVendor(data) : VendorService.updateVendor(data);
 
-    clientRq
-      .then((clientRs) => {
-        let errorCount = 0;
+    vendorRq
+      .then((vendorRs) => {
+        setSuccessMessage('Operación realizada con éxito');
+        afterSubmit();
 
-        if (clientRs.data.putUrlLogo) {
-          const fileRq = sharedServices.uploadFile(clientRs.data.putUrlLogo, compressedLogoFile!);
-
-          fileRq
-            .then((fileRs) => {})
-            .catch((fileError) => {
-              errorCount++;
-            });
-          setFileLogoName('');
-        }
-
-        if (clientRs.data.putUrlHeader) {
-          const fileRq = sharedServices.uploadFile(
-            clientRs.data.putUrlHeader,
-            compressedHeaderFile!
-          );
-
-          fileRq
-            .then((fileRs) => {})
-            .catch((fileError) => {
-              errorCount++;
-            });
-          setFileHeaderName('');
-        }
-
-        if (errorCount > 0) {
-          seAtttachedErrorMessage(
-            'El registro se guardó correctamente pero se ha presentado un error al subir un archivo'
-          );
-          afterSubmit();
-        } else {
-          setSuccessMessage('Operación realizada con éxito');
-          afterSubmit();
-        }
-
-        handleSavedData(clientRs.data);
+        handleSavedData(vendorRs.data);
       })
-      .catch((clientError) => {
-        if (clientError.response) setErrorMessage(clientError.response.data);
+      .catch((error) => {
+        if (error.response) setErrorMessage(error.response.data);
         else setErrorMessage('Se ha presentado un error. Intente nuevamente');
         setIsSavingData(false);
       });
@@ -363,7 +392,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     <ModalDialog
       isOpen={openDialog}
       handleClose={handleDialogClose}
-      title={action === 'create' ? 'Crear cliente' : 'Actualizar cliente'}
+      title={action === 'create' ? 'Crear proveedor' : 'Actualizar proveedor'}
     >
       {isLoading && <Loading />}
 
@@ -401,56 +430,13 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                <Controller
-                  name="typePerson"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      label="Tipo persona *"
-                      {...field}
-                      error={Boolean(errors.typePerson)}
-                      helperText={errors.typePerson && errors.typePerson.message}
-                    >
-                      <MenuItem value="">Seleccione</MenuItem>
-                      <MenuItem value="Natural">Natural</MenuItem>
-                      <MenuItem value="Jurídica">Jurídica</MenuItem>
-                    </TextField>
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                <Controller
-                  name="typeId"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      label="Tipo identificación *"
-                      {...field}
-                      error={Boolean(errors.typeId)}
-                      helperText={errors.typeId && errors.typeId.message}
-                    >
-                      <MenuItem value="">Seleccione</MenuItem>
-                      <MenuItem value="Nit">NIT</MenuItem>
-                      <MenuItem value="Cédula">Cédula</MenuItem>
-                    </TextField>
-                  )}
-                />
-              </Grid>
-
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Controller
                   name="numberId"
                   control={control}
                   render={({ field }) => (
                     <TextField
+                      disabled={action === 'update'}
                       fullWidth
                       size="small"
                       label="Número *"
@@ -468,9 +454,10 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                   control={control}
                   render={({ field }) => (
                     <TextField
+                      disabled={action === 'update'}
                       fullWidth
                       size="small"
-                      label="DV"
+                      label="DV *"
                       {...field}
                       error={Boolean(errors.dv)}
                       helperText={errors.dv && errors.dv.message}
@@ -481,45 +468,17 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="country"
+                  name="address"
                   control={control}
                   render={({ field }) => (
                     <TextField
-                      select
                       fullWidth
                       size="small"
-                      label="País *"
+                      label="Dirección *"
                       {...field}
-                      error={Boolean(errors.country)}
-                      helperText={errors.country && errors.country.message}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton
-                                onClick={() => onOpenDialogAdd('COUNTRY', 'país', countryList)}
-                                edge="end"
-                              >
-                                <Iconify icon="mingcute:add-line" />
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                      sx={{
-                        '& .MuiSvgIcon-root': {
-                          position: 'absolute',
-                          right: '35px',
-                        },
-                      }}
-                    >
-                      <MenuItem value="">Seleccione</MenuItem>
-                      {countryList.map((country: any) => (
-                        <MenuItem key={country.PK} value={country.PK}>
-                          {country.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
+                      error={Boolean(errors.address)}
+                      helperText={errors.address && errors.address.message}
+                    />
                   )}
                 />
               </Grid>
@@ -571,23 +530,25 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="sector"
+                  name="department"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       select
                       fullWidth
                       size="small"
-                      label="Sector"
+                      label="Departamento *"
                       {...field}
-                      error={Boolean(errors.sector)}
-                      helperText={errors.sector && errors.sector.message}
+                      error={Boolean(errors.department)}
+                      helperText={errors.department && errors.department.message}
                       slotProps={{
                         input: {
                           endAdornment: (
                             <InputAdornment position="end">
                               <IconButton
-                                onClick={() => onOpenDialogAdd('SECTOR', 'sector', sectorList)}
+                                onClick={() =>
+                                  onOpenDialogAdd('DEPARTMENT', 'departamento', departmentList)
+                                }
                                 edge="end"
                               >
                                 <Iconify icon="mingcute:add-line" />
@@ -604,9 +565,9 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                       }}
                     >
                       <MenuItem value="">Seleccione</MenuItem>
-                      {sectorList.map((sector: any) => (
-                        <MenuItem key={sector.PK} value={sector.PK}>
-                          {sector.name}
+                      {departmentList.map((department: any) => (
+                        <MenuItem key={department.PK} value={department.PK}>
+                          {department.name}
                         </MenuItem>
                       ))}
                     </TextField>
@@ -614,7 +575,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
                   name="phone"
                   control={control}
@@ -631,88 +592,43 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="address"
+                  name="typeActivity"
                   control={control}
                   render={({ field }) => (
                     <TextField
+                      select
                       fullWidth
                       size="small"
-                      label="Dirección *"
+                      label="Tipo de actividad *"
                       {...field}
-                      error={Boolean(errors.address)}
-                      helperText={errors.address && errors.address.message}
-                    />
+                      error={Boolean(errors.typeActivity)}
+                      helperText={errors.typeActivity && errors.typeActivity.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      <MenuItem value="DISTRIBUIDOR">DISTRIBUIDOR</MenuItem>
+                      <MenuItem value="INTERMEDIARIO">INTERMEDIARIO</MenuItem>
+                      <MenuItem value="FABRICANTE">FABRICANTE</MenuItem>
+                      <MenuItem value="IMPORTADOR">IMPORTADOR</MenuItem>
+                      <MenuItem value="SERVICIOS">SERVICIOS</MenuItem>
+                    </TextField>
                   )}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="email"
+                  name="experience"
                   control={control}
                   render={({ field }) => (
                     <TextField
                       fullWidth
                       size="small"
-                      label="Email"
+                      label="Experiencia *"
                       {...field}
-                      error={Boolean(errors.email)}
-                      helperText={errors.email && errors.email.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Controller
-                  name="web"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Página web"
-                      {...field}
-                      error={Boolean(errors.web)}
-                      helperText={errors.web && errors.web.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-                <Controller
-                  name="buttonsColor"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      type="color"
-                      fullWidth
-                      size="small"
-                      label="Color botones"
-                      {...field}
-                      error={Boolean(errors.buttonsColor)}
-                      helperText={errors.buttonsColor && errors.buttonsColor.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-                <Controller
-                  name="titlesColor"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      type="color"
-                      fullWidth
-                      size="small"
-                      label="Color título"
-                      {...field}
-                      error={Boolean(errors.titlesColor)}
-                      helperText={errors.titlesColor && errors.titlesColor.message}
+                      error={Boolean(errors.experience)}
+                      helperText={errors.experience && errors.experience.message}
                     />
                   )}
                 />
@@ -720,17 +636,36 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="titlesPdfColor"
+                  name="ciiu"
                   control={control}
                   render={({ field }) => (
                     <TextField
-                      type="color"
                       fullWidth
                       size="small"
-                      label="Color títulos PDF"
+                      label="CIIU *"
                       {...field}
-                      error={Boolean(errors.titlesPdfColor)}
-                      helperText={errors.titlesPdfColor && errors.titlesPdfColor.message}
+                      error={Boolean(errors.ciiu)}
+                      helperText={errors.ciiu && errors.ciiu.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={12}>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={3}
+                      maxRows={10}
+                      size="small"
+                      label="Descripción del producto o servicio a ofrecer *"
+                      {...field}
+                      error={Boolean(errors.description)}
+                      helperText={errors.description && errors.description.message}
                     />
                   )}
                 />
@@ -738,17 +673,16 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="backgroundPdfColor"
+                  name="term"
                   control={control}
                   render={({ field }) => (
                     <TextField
-                      type="color"
                       fullWidth
                       size="small"
-                      label="Color fondo títulos tablas PDF"
+                      label="Plazo de pago *"
                       {...field}
-                      error={Boolean(errors.backgroundPdfColor)}
-                      helperText={errors.backgroundPdfColor && errors.backgroundPdfColor.message}
+                      error={Boolean(errors.term)}
+                      helperText={errors.term && errors.term.message}
                     />
                   )}
                 />
@@ -756,84 +690,364 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <Controller
-                  name="borderTablesPdfColor"
+                  name="discount"
                   control={control}
                   render={({ field }) => (
                     <TextField
-                      type="color"
                       fullWidth
                       size="small"
-                      label="Color bordes tablas PDF"
+                      label="% Descuento *"
                       {...field}
-                      error={Boolean(errors.borderTablesPdfColor)}
+                      error={Boolean(errors.discount)}
+                      helperText={errors.discount && errors.discount.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="bank"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Entidad bancaria *"
+                      {...field}
+                      error={Boolean(errors.bank)}
+                      helperText={errors.bank && errors.bank.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Controller
+                  name="accountNumber"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="No. de cuenta *"
+                      {...field}
+                      error={Boolean(errors.accountNumber)}
+                      helperText={errors.accountNumber && errors.accountNumber.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Controller
+                  name="accountType"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Tipo de cuenta *"
+                      {...field}
+                      error={Boolean(errors.accountType)}
+                      helperText={errors.accountType && errors.accountType.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      <MenuItem value="AHORROS">AHORROS</MenuItem>
+                      <MenuItem value="CORRIENTE">CORRIENTE</MenuItem>
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Controller
+                  name="ivaType"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Responsable IVA *"
+                      {...field}
+                      error={Boolean(errors.ivaType)}
+                      helperText={errors.ivaType && errors.ivaType.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      <MenuItem value="REGIMEN COMUN">REGIMEN COMUN</MenuItem>
+                      <MenuItem value="REGIMEN SIMPLIFICADO">REGIMEN SIMPLIFICADO</MenuItem>
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Controller
+                  name="incomeTaxPayer"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Contribuyente imporenta *"
+                      {...field}
+                      error={Boolean(errors.incomeTaxPayer)}
+                      helperText={errors.incomeTaxPayer && errors.incomeTaxPayer.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      <MenuItem value="SI">SI</MenuItem>
+                      <MenuItem value="NO">NO</MenuItem>
+                      <MenuItem value="REG. ESP.">REG. ESP.</MenuItem>
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="bigTaxPayer"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Gran contribuyente *"
+                      {...field}
+                      error={Boolean(errors.bigTaxPayer)}
+                      helperText={errors.bigTaxPayer && errors.bigTaxPayer.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      <MenuItem value="SI">SI</MenuItem>
+                      <MenuItem value="NO">NO</MenuItem>
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="resolutionBigTaxPayer"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      disabled={bigTaxPayerValue !== 'SI'}
+                      fullWidth
+                      size="small"
+                      label={'No. resolución' + (bigTaxPayerValue === 'SI' ? ' *' : '')}
+                      {...field}
+                      error={Boolean(errors.resolutionBigTaxPayer)}
                       helperText={
-                        errors.borderTablesPdfColor && errors.borderTablesPdfColor.message
+                        errors.resolutionBigTaxPayer && errors.resolutionBigTaxPayer.message
                       }
                     />
                   )}
                 />
               </Grid>
 
-              <Grid
-                size={12}
-                sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}
-              >
-                <Typography sx={{ m: 0 }}>
-                  Logo: {fileLogoName || 'Aún no se ha subido ningún archivo.'}
-                </Typography>
-                <Button
-                  disabled={isSavingData || isCompressingFile}
-                  component="label"
-                  role={undefined}
-                  variant="contained"
-                  tabIndex={-1}
-                >
-                  <Iconify icon="eva:attach-2-fill" />
-                  <input
-                    value=""
-                    accept="image/png, image/jpeg, image/jpg"
-                    hidden
-                    type="file"
-                    onChange={onFileLogoSelected}
-                  />
-                </Button>
-
-                {urlLogo !== '' && (
-                  <Link href={urlLogo} target="_blank" sx={{ m: 0, cursor: 'pointer' }}>
-                    Descargar archivo adjunto
-                  </Link>
-                )}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="dateBigTaxPayer"
+                  control={control}
+                  render={({ field: { onChange, value, ...rest } }) => (
+                    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                      <DatePicker
+                        disabled={isSavingData || bigTaxPayerValue !== 'SI'}
+                        label={'Fecha' + (bigTaxPayerValue === 'SI' ? ' *' : '')}
+                        slotProps={{
+                          textField: {
+                            size: 'small',
+                            fullWidth: true,
+                            error: Boolean(errors.dateBigTaxPayer),
+                            helperText: errors.dateBigTaxPayer && errors.dateBigTaxPayer.message,
+                          },
+                        }}
+                        value={value ? dayjs(value) : null}
+                        onChange={(newValue) => {
+                          onChange(newValue ? newValue.toISOString() : null);
+                        }}
+                        {...rest}
+                      />
+                    </LocalizationProvider>
+                  )}
+                />
               </Grid>
 
-              <Grid
-                size={12}
-                sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}
-              >
-                <Typography sx={{ m: 0 }}>
-                  Header: {fileHeaderName || 'Aún no se ha subido ningún archivo.'}
-                </Typography>
-                <Button
-                  disabled={isSavingData || isCompressingFile}
-                  component="label"
-                  role={undefined}
-                  variant="contained"
-                  tabIndex={-1}
-                >
-                  <Iconify icon="eva:attach-2-fill" />
-                  <input
-                    value=""
-                    accept="image/png, image/jpeg, image/jpg"
-                    hidden
-                    type="file"
-                    onChange={onFileHeaderSelected}
-                  />
-                </Button>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="selfRetaining"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Autorretenedor *"
+                      {...field}
+                      error={Boolean(errors.selfRetaining)}
+                      helperText={errors.selfRetaining && errors.selfRetaining.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      <MenuItem value="SI">SI</MenuItem>
+                      <MenuItem value="NO">NO</MenuItem>
+                    </TextField>
+                  )}
+                />
+              </Grid>
 
-                {urlHeader !== '' && (
-                  <Link href={urlHeader} target="_blank" sx={{ m: 0, cursor: 'pointer' }}>
-                    Descargar archivo adjunto
-                  </Link>
-                )}
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="resolutionSelfRetaining"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      disabled={selfRetainingValue !== 'SI'}
+                      fullWidth
+                      size="small"
+                      label={'No. resolución' + (selfRetainingValue === 'SI' ? ' *' : '')}
+                      {...field}
+                      error={Boolean(errors.resolutionSelfRetaining)}
+                      helperText={
+                        errors.resolutionSelfRetaining && errors.resolutionSelfRetaining.message
+                      }
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="dateSelfRetaining"
+                  control={control}
+                  render={({ field: { onChange, value, ...rest } }) => (
+                    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                      <DatePicker
+                        disabled={isSavingData || selfRetainingValue !== 'SI'}
+                        label={'Fecha' + (selfRetainingValue === 'SI' ? ' *' : '')}
+                        slotProps={{
+                          textField: {
+                            size: 'small',
+                            fullWidth: true,
+                            error: Boolean(errors.dateSelfRetaining),
+                            helperText:
+                              errors.dateSelfRetaining && errors.dateSelfRetaining.message,
+                          },
+                        }}
+                        value={value ? dayjs(value) : null}
+                        onChange={(newValue) => {
+                          onChange(newValue ? newValue.toISOString() : null);
+                        }}
+                        {...rest}
+                      />
+                    </LocalizationProvider>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Controller
+                  name="industryTaxResponsible"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Responsable impuesto de industria y comercio *"
+                      {...field}
+                      error={Boolean(errors.industryTaxResponsible)}
+                      helperText={
+                        errors.industryTaxResponsible && errors.industryTaxResponsible.message
+                      }
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      <MenuItem value="SI">SI</MenuItem>
+                      <MenuItem value="NO">NO</MenuItem>
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Controller
+                  name="industryTaxCity"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      disabled={industryTaxResponsibleValue !== 'SI'}
+                      select
+                      fullWidth
+                      size="small"
+                      label={'Ciudad' + (industryTaxResponsibleValue === 'SI' ? ' *' : '')}
+                      {...field}
+                      error={Boolean(errors.industryTaxCity)}
+                      helperText={errors.industryTaxCity && errors.industryTaxCity.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      {cityList.map((city: any) => (
+                        <MenuItem key={city.PK} value={city.PK}>
+                          {city.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Controller
+                  name="industryTaxCode"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      disabled={industryTaxResponsibleValue !== 'SI'}
+                      fullWidth
+                      size="small"
+                      label={'Código activo' + (industryTaxResponsibleValue === 'SI' ? ' *' : '')}
+                      {...field}
+                      error={Boolean(errors.industryTaxCode)}
+                      helperText={errors.industryTaxCode && errors.industryTaxCode.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+                <Controller
+                  name="industryTaxRate"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      disabled={industryTaxResponsibleValue !== 'SI'}
+                      fullWidth
+                      size="small"
+                      label={'Tarifa' + (industryTaxResponsibleValue === 'SI' ? ' *' : '')}
+                      {...field}
+                      error={Boolean(errors.industryTaxRate)}
+                      helperText={errors.industryTaxRate && errors.industryTaxRate.message}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 12 }}>
+                <Controller
+                  name="legalRepresentative"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Representante legal *"
+                      {...field}
+                      error={Boolean(errors.legalRepresentative)}
+                      helperText={errors.legalRepresentative && errors.legalRepresentative.message}
+                    />
+                  )}
+                />
               </Grid>
 
               {errorMessage !== '' && (
@@ -847,21 +1061,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                     }}
                   >
                     {errorMessage}
-                  </Alert>
-                </Grid>
-              )}
-
-              {attachedErrorMessage !== '' && (
-                <Grid size={12}>
-                  <Alert
-                    severity="warning"
-                    sx={{
-                      borderRadius: 1,
-                      width: 1,
-                      mb: 0,
-                    }}
-                  >
-                    {attachedErrorMessage}
                   </Alert>
                 </Grid>
               )}
@@ -883,7 +1082,6 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
               <Grid size={12}>
                 <Button
-                  disabled={isCompressingFile}
                   type="submit"
                   variant="contained"
                   color="inherit"
@@ -891,7 +1089,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                   loadingPosition="start"
                   fullWidth
                 >
-                  {action === 'create' ? 'Crear cliente' : 'Actualizar cliente'}
+                  {action === 'create' ? 'Crear proveedor' : 'Actualizar proveedor'}
                 </Button>
               </Grid>
             </Grid>

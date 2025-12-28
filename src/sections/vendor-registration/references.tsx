@@ -23,7 +23,7 @@ import {
   useTable,
 } from 'src/components/data-table';
 
-import { ContactForm } from './contact-form';
+import { ReferenceForm } from './reference-form';
 
 // ----------------------------------------------------------------------
 
@@ -33,27 +33,27 @@ interface Props {
   vendorPK: string;
 }
 
-export function Contacts({ permissionsList, data, vendorPK }: Props) {
-  type ContactProps = {
+export function References({ permissionsList, data, vendorPK }: Props) {
+  type ReferenceProps = {
     PK: string;
     SK: string;
-    name: string;
-    typeContact: string;
-    email: string;
+    client: string;
+    contact: string;
+    phone: string;
   };
 
   const headLabel = [
     { id: '', label: '' },
-    { id: 'name', label: 'Nombre' },
-    { id: 'typeContact', label: 'Tipo de contacto' },
-    { id: 'email', label: 'Email' },
+    { id: 'client', label: 'Cliente' },
+    { id: 'contact', label: 'Contacto' },
+    { id: 'phone', label: 'Teléfono' },
   ];
 
   const [searchResult, setSearchResult] = useState<any>(data);
 
   const [openForm, setOpenForm] = useState(false);
   const [formAction, setFormAction] = useState('');
-  const [contact, setContact] = useState('');
+  const [reference, setReference] = useState('');
 
   const [savedData, setSavedData] = useState<any>();
 
@@ -65,7 +65,7 @@ export function Contacts({ permissionsList, data, vendorPK }: Props) {
 
   const [filterName, setFilterName] = useState('');
 
-  const dataFiltered: ContactProps[] = applyFilter({
+  const dataFiltered: ReferenceProps[] = applyFilter({
     inputData: searchResult,
     comparator: getComparator(table.order, table.orderBy),
     filterName,
@@ -91,9 +91,9 @@ export function Contacts({ permissionsList, data, vendorPK }: Props) {
     setOpenForm(true);
   };
 
-  const handleUpdateAction = (contactRow: any) => {
+  const handleUpdateAction = (referenceRow: any) => {
     setFormAction('update');
-    setContact(contactRow);
+    setReference(referenceRow);
     setOpenForm(true);
   };
 
@@ -121,13 +121,13 @@ export function Contacts({ permissionsList, data, vendorPK }: Props) {
           startIcon={<Iconify icon="mingcute:add-line" />}
           onClick={onOpenForm}
         >
-          Nuevo contacto
+          Nuevo referencia
         </Button>
       </Box>
 
       {searchResult.length === 0 && (
         <Typography variant="subtitle2" textAlign="center" sx={{ my: 3, mx: 2 }}>
-          No hay contactos para mostrar
+          No hay referencias para mostrar
         </Typography>
       )}
 
@@ -185,13 +185,13 @@ export function Contacts({ permissionsList, data, vendorPK }: Props) {
       )}
 
       {openForm && (
-        <ContactForm
+        <ReferenceForm
           openForm={openForm}
           action={formAction}
           vendorPK={vendorPK}
-          contact={contact}
+          reference={reference}
           onCloseForm={() => {
-            setContact('');
+            setReference('');
             setOpenForm(false);
           }}
           handleSavedData={(newData) => setSavedData(newData)}

@@ -12,7 +12,7 @@ import VendorService from 'src/services/vendor-registration/vendor-registration-
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
 
-import { Contacts, Form, Search } from 'src/sections/vendor-registration';
+import { Form, ManageVendor, Search } from 'src/sections/vendor-registration';
 
 // ----------------------------------------------------------------------
 
@@ -30,9 +30,9 @@ export function VendorRegistrationView() {
   const [formAction, setFormAction] = useState('');
   const [PK, setPK] = useState('');
 
-  const [manageContacts, setManageContacts] = useState(false);
-  const [managedClientPK, setManagedClientPK] = useState('');
-  const [triggerManageClient, setTriggerManageClient] = useState(0);
+  const [manageVendor, setManageVendor] = useState(false);
+  const [managedVendorPK, setManagedVendorPK] = useState('');
+  const [triggerManageVendor, setTriggerManageVendor] = useState(0);
 
   const [savedData, setSavedData] = useState();
 
@@ -82,10 +82,10 @@ export function VendorRegistrationView() {
     setOpenForm(true);
   };
 
-  const onManageContacts = (clientId: string) => {
-    setManagedClientPK(clientId);
-    setTriggerManageClient((prev) => prev + 1);
-    setManageContacts(true);
+  const onManageVendor = (vendorId: string) => {
+    setManagedVendorPK(vendorId);
+    setTriggerManageVendor((prev) => prev + 1);
+    setManageVendor(true);
   };
 
   return (
@@ -168,19 +168,19 @@ export function VendorRegistrationView() {
             cityList={cityList}
             savedData={savedData}
             handleUpdateAction={(data) => onUpdateForm(data)}
-            handleManageAction={(data) => onManageContacts(data)}
+            handleManageAction={(data) => onManageVendor(data)}
             hideContactSection={() => {
-              setManageContacts(false);
-              setManagedClientPK('');
+              setManageVendor(false);
+              setManagedVendorPK('');
             }}
           />
 
-          {manageContacts && (
-            <Contacts
+          {manageVendor && (
+            <ManageVendor
               permissionsList={permissionsList}
-              clickedManage={triggerManageClient}
-              managedClientPK={managedClientPK}
-              savedClientData={savedData}
+              clickedManage={triggerManageVendor}
+              managedVendorPK={managedVendorPK}
+              savedVendorData={savedData}
             />
           )}
         </Box>
