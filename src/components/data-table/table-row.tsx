@@ -83,6 +83,7 @@ export function DataTableRow({
           if (format === 'price') label = formatCurrency(row[`${headCell.id}`]);
           else if (format === 'date')
             label = row[`${headCell.id}`] ? row[`${headCell.id}`].slice(0, 10) : '';
+          else if (format === 'PK') label = row[`${headCell.id}`].match(/\d+/g)[0];
           else label = row[`${headCell.id}`];
 
           return (

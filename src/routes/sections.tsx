@@ -22,6 +22,7 @@ export const DashboardPage = lazy(() => import('src/pages/dashboard'));
 export const PersonalRegistration = lazy(() => import('src/pages/personal-registration'));
 export const VendorRegistration = lazy(() => import('src/pages/vendor-registration'));
 export const ItemCoding = lazy(() => import('src/pages/item-coding'));
+export const Requisition = lazy(() => import('src/pages/requisition'));
 
 export const LoginPage = lazy(() => import('src/pages/login'));
 
@@ -129,6 +130,7 @@ export const routesSection: RouteObject[] = [
       { path: 'personal-registration', element: <PersonalRegistration /> },
       { path: 'vendor-registration', element: <VendorRegistration /> },
       { path: 'item-coding', element: <ItemCoding /> },
+      { path: 'requisition', element: <Requisition /> },
     ],
   },
   { path: '*', element: <RootRedirect /> },
