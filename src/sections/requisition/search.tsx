@@ -41,6 +41,7 @@ import {
 } from 'src/components/data-table';
 
 import { ChangeStatus } from './change-status';
+import { RequisitionPrint } from './requisition-print';
 
 // ----------------------------------------------------------------------
 
@@ -113,6 +114,8 @@ export function Search({
 
   const [requestType, setRequestType] = useState('');
   const [searchResult, setSearchResult] = useState<ItemProps[]>([]);
+
+  const [isPrintingRequisition, setIsPrintingRequisition] = useState(false);
 
   const [openChangeStatus, setOpenChangeStatus] = useState(false);
   const [openChangeStatusAction, setOpenChangeStatusAction] = useState('false');
@@ -293,6 +296,23 @@ export function Search({
     }
 
     setRequestType(request);
+  };
+
+  const handlePrintAction = (PK: string) => {
+    setIsPrintingRequisition(true);
+
+    const query: { PK: string; type: string; action: string } = {
+      PK: PK,
+      type: 'P',
+      action: 'PRINT',
+    };
+
+    const requisitionRq = RequisitionService.getRequisition(query);
+
+    requisitionRq.then(async (res) => {
+      await sharedServices.exportPdf(<RequisitionPrint data={res.data} />);
+      setIsPrintingRequisition(false);
+    });
   };
 
   const resertTableFilters = () => {
@@ -516,6 +536,7 @@ export function Search({
                           tableActions={dynamicTableActions}
                           onUpdateAction={() => handleUpdateAction(row.PK)}
                           onManageAction={() => handleManageAction(row.PK)}
+                          onPrintAction={() => handlePrintAction(row.PK)}
                           onApproveAction={() => {
                             setChangeStatusPK(row.PK);
                             setOpenChangeStatus(true);

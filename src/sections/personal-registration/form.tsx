@@ -218,7 +218,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
           .then(
             axios.spread((positionRs, profileRs, userRs) => {
               setPositionList(positionRs.data);
-              setProfileList(profileRs.data.filter((item: any) => item.type === 'System'));
+              setProfileList(profileRs.data);
 
               if (action === 'update' && userRs?.data) {
                 reset(userRs.data);
