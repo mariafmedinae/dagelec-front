@@ -11,6 +11,8 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
+  FormControlLabel,
   Grid,
   MenuItem,
   Table,
@@ -37,6 +39,8 @@ import {
   getComparator,
   useTable,
 } from 'src/components/data-table';
+
+import { ChangeStatus } from './change-status';
 
 // ----------------------------------------------------------------------
 
@@ -102,6 +106,7 @@ export function Search({
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedStartDate, setSelectedStartDate] = useState<any>(null);
   const [selectedFinishDate, setSelectedFinishDate] = useState<any>(null);
+  const [selectedPending, setSelectedPending] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -109,7 +114,12 @@ export function Search({
   const [requestType, setRequestType] = useState('');
   const [searchResult, setSearchResult] = useState<ItemProps[]>([]);
 
+  const [openChangeStatus, setOpenChangeStatus] = useState(false);
+  const [openChangeStatusAction, setOpenChangeStatusAction] = useState('false');
+  const [changeStatusPK, setChangeStatusPK] = useState<any>('');
+
   const tableActions = getActionsList(permissionsList, formPK);
+  const [dynamicTableActions, setDynamicTableActions] = useState<any>([]);
 
   const table = useTable();
 
@@ -150,12 +160,23 @@ export function Search({
         setSelectedStatus('');
         setSelectedStartDate(null);
         setSelectedFinishDate(null);
+        setSelectedPending(false);
         setSearchResult([savedData]);
       }
 
       resertTableFilters();
     }
   }, [savedData]);
+
+  useEffect(() => {
+    if (selectedPending) {
+      setSelectedApplicant('');
+      setSelectedCostCenter('');
+      setSelectedStatus('');
+      setSelectedStartDate(null);
+      setSelectedFinishDate(null);
+    }
+  }, [selectedPending]);
 
   useEffect(() => {
     if (requestType && isLoading) {
@@ -165,6 +186,20 @@ export function Search({
       if (selectedStatus) query.status = selectedStatus;
       if (selectedStartDate) query.startDate = selectedStartDate;
       if (selectedFinishDate) query.finishDate = selectedFinishDate;
+
+      const rowActions = [];
+      if (tableActions.includes('PRINT')) rowActions.push('PRINT');
+      if (selectedPending) {
+        if (tableActions.includes('APPROVE')) rowActions.push('APPROVE');
+
+        query.pending = 'Pending';
+      } else {
+        if (tableActions.includes('UPDATE')) rowActions.push('UPDATE');
+        if (tableActions.includes('MANAGE')) rowActions.push('MANAGE');
+        if (tableActions.includes('SEND')) rowActions.push('SEND');
+      }
+      setDynamicTableActions(rowActions);
+
       query.action = requestType === 'search' ? 'SEARCH' : 'INFORM';
 
       const itemRq = RequisitionService.getRequisition(query);
@@ -243,7 +278,8 @@ export function Search({
       !selectedCostCenter &&
       !selectedStatus &&
       !selectedStartDate &&
-      !selectedFinishDate
+      !selectedFinishDate &&
+      !selectedPending
     ) {
       setErrorMessage('Debe de ingresar al menos un criterio de búsqueda.');
       setIsLoading(false);
@@ -276,6 +312,7 @@ export function Search({
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 4 }}>
                 <TextField
+                  disabled={selectedPending}
                   defaultValue=""
                   select
                   fullWidth
@@ -295,6 +332,7 @@ export function Search({
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
+                  disabled={selectedPending}
                   defaultValue=""
                   select
                   fullWidth
@@ -314,6 +352,7 @@ export function Search({
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                 <TextField
+                  disabled={selectedPending}
                   defaultValue=""
                   select
                   fullWidth
@@ -335,6 +374,7 @@ export function Search({
               <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
                   <DatePicker
+                    disabled={selectedPending}
                     label="Fecha de inicio"
                     slotProps={{ textField: { size: 'small', fullWidth: true } }}
                     value={selectedStartDate ? dayjs(selectedStartDate) : null}
@@ -348,6 +388,7 @@ export function Search({
               <Grid size={{ xs: 12, sm: 6, md: 6 }}>
                 <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
                   <DatePicker
+                    disabled={selectedPending}
                     label="Fecha final"
                     slotProps={{ textField: { size: 'small', fullWidth: true } }}
                     minDate={dayjs(selectedStartDate)}
@@ -357,6 +398,18 @@ export function Search({
                     }}
                   />
                 </LocalizationProvider>
+              </Grid>
+
+              <Grid size={12}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={selectedPending}
+                      onChange={(event) => setSelectedPending(event.target.checked)}
+                    />
+                  }
+                  label="Requisiciones pendientes de aprobación"
+                />
               </Grid>
 
               {errorMessage !== '' && (
@@ -460,9 +513,19 @@ export function Search({
                           key={row.PK}
                           row={row}
                           headLabel={headLabel}
-                          tableActions={tableActions}
+                          tableActions={dynamicTableActions}
                           onUpdateAction={() => handleUpdateAction(row.PK)}
                           onManageAction={() => handleManageAction(row.PK)}
+                          onApproveAction={() => {
+                            setChangeStatusPK(row.PK);
+                            setOpenChangeStatus(true);
+                            setOpenChangeStatusAction('APPROVE');
+                          }}
+                          onSendAction={() => {
+                            setChangeStatusPK(row.PK);
+                            setOpenChangeStatus(true);
+                            setOpenChangeStatusAction('SEND');
+                          }}
                         />
                       ))}
                   </TableBody>
@@ -481,6 +544,19 @@ export function Search({
               labelRowsPerPage="Filas por página"
             />
           </>
+        )}
+
+        {openChangeStatus && (
+          <ChangeStatus
+            openAlert={openChangeStatus}
+            action={openChangeStatusAction}
+            PK={changeStatusPK}
+            onCloseAlert={() => {
+              setChangeStatusPK('');
+              setOpenChangeStatus(false);
+            }}
+            handleSavedElement={() => {}}
+          />
         )}
       </Card>
     </>

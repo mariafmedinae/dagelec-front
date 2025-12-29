@@ -23,8 +23,9 @@ type DataTableRowProps = {
   onUpdateAction?: () => void;
   onManageAction?: () => void;
   onPrintAction?: () => void;
-  onChangePricesAction?: () => void;
   onItemInfo?: () => void;
+  onSendAction?: () => void;
+  onApproveAction?: () => void;
   onDeleteAction?: () => void;
 };
 
@@ -37,8 +38,9 @@ export function DataTableRow({
   onUpdateAction,
   onManageAction,
   onPrintAction,
-  onChangePricesAction,
   onItemInfo,
+  onSendAction,
+  onApproveAction,
   onDeleteAction,
 }: DataTableRowProps) {
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
@@ -116,7 +118,7 @@ export function DataTableRow({
             sx={{
               p: 0.5,
               gap: 0.5,
-              width: 180,
+              width: 220,
               display: 'flex',
               flexDirection: 'column',
               [`& .${menuItemClasses.root}`]: {
@@ -163,29 +165,29 @@ export function DataTableRow({
               </MenuItem>
             )}
 
-            {tableActions.includes('DUPLICATE') && (
+            {tableActions.includes('SEND') && (
               <MenuItem
                 onClick={() => {
-                  onChangePricesAction!();
+                  onSendAction!();
                   handleClosePopover();
                 }}
               >
-                <Iconify icon="tabler:coin" />
-                Actualizar precios
+                <Iconify icon="fluent:send-clock-20-filled" />
+                Enviar para aprobación
               </MenuItem>
             )}
 
-            {/* {tableActions.includes('ITEM_INFO') && (
+            {tableActions.includes('APPROVE') && (
               <MenuItem
                 onClick={() => {
-                  onItemInfo!();
+                  onApproveAction!();
                   handleClosePopover();
                 }}
               >
-                <Iconify icon="material-symbols:info-outline-rounded" />
-                Detalle
+                <Iconify icon="material-symbols:order-approve" />
+                Aprobar
               </MenuItem>
-            )} */}
+            )}
 
             {tableActions.includes('DELETE') && (
               <MenuItem

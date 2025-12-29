@@ -6,16 +6,13 @@ import {
   Button,
   Card,
   CardContent,
-  Grid,
   Table,
   TableBody,
   TableContainer,
   TablePagination,
-  TextField,
   Typography,
 } from '@mui/material';
 
-import { formatCurrency } from 'src/utils/format-currency';
 import { getActionsList, verifyPermission } from 'src/utils/permissions-functions';
 
 import RequisitionService from 'src/services/requisition/requisition-service';
@@ -33,6 +30,7 @@ import {
 } from 'src/components/data-table';
 
 import { FormItems } from './form-items';
+import { DeleteAlert } from './delete-alert';
 
 // ----------------------------------------------------------------------
 
@@ -46,6 +44,7 @@ interface Props {
 export function Items({ permissionsList, clickedManage, managedPK, savedRequisitionData }: Props) {
   type ItemProps = {
     PK: string;
+    SK: string;
     itemName: string;
     itemUnit: string;
     quantity: string;
@@ -57,7 +56,7 @@ export function Items({ permissionsList, clickedManage, managedPK, savedRequisit
     { id: 'itemName', label: 'Item' },
     { id: 'itemUnit', label: 'Unidad de medida' },
     { id: 'quantity', label: 'Cantidad' },
-    { id: 'requiredDate', label: 'Fecha requerida' },
+    { id: 'requiredDate', label: 'Fecha requerida|date' },
   ];
 
   const [globalError, setGlobalError] = useState(false);
@@ -65,6 +64,9 @@ export function Items({ permissionsList, clickedManage, managedPK, savedRequisit
 
   const [searchHeader, setSearchHeader] = useState<any>({ name: '' });
   const [searchResult, setSearchResult] = useState<ItemProps[]>([]);
+
+  const [openAlert, setOpenAlert] = useState(false);
+  const [deleteElement, setDeleteElement] = useState<any>();
 
   const [openForm, setOpenForm] = useState(false);
   const [formAction, setFormAction] = useState('');
@@ -125,14 +127,12 @@ export function Items({ permissionsList, clickedManage, managedPK, savedRequisit
 
   useEffect(() => {
     if (savedData) {
-      const index = searchResult.findIndex((item: any) => item.SK === savedData.item.SK);
+      const index = searchResult.findIndex((item: any) => item.SK === savedData.SK);
 
-      if (index !== -1) searchResult[index] = savedData.item;
+      if (index !== -1) searchResult[index] = savedData;
       else {
-        setSearchResult([savedData.item, ...searchResult]);
+        setSearchResult([savedData, ...searchResult]);
       }
-
-      setSearchHeader(savedData.dish);
 
       table.onSort('noColumn');
       setFilterName('');
@@ -148,6 +148,15 @@ export function Items({ permissionsList, clickedManage, managedPK, savedRequisit
     setFormAction('update');
     setItemSK(rowSK);
     setOpenForm(true);
+  };
+
+  const handleDeleteAction = (element: any) => {
+    setOpenAlert(true);
+    setDeleteElement(element);
+  };
+
+  const deleteRow = () => {
+    setSearchResult((prevItems) => prevItems.filter((item) => item.SK !== deleteElement.SK));
   };
 
   const scrollToBottom = () => {
@@ -258,12 +267,12 @@ export function Items({ permissionsList, clickedManage, managedPK, savedRequisit
                           )
                           .map((row) => (
                             <DataTableRow
-                              key={row.PK}
+                              key={row.SK}
                               row={row}
                               headLabel={headLabel}
                               tableActions={tableActions}
-                              tableOrigin="recipeItems"
-                              onUpdateAction={() => handleUpdateAction(row.PK)}
+                              onUpdateAction={() => handleUpdateAction(row.SK)}
+                              onDeleteAction={() => handleDeleteAction(row)}
                             />
                           ))}
                       </TableBody>
@@ -282,6 +291,19 @@ export function Items({ permissionsList, clickedManage, managedPK, savedRequisit
                   labelRowsPerPage="Filas por página"
                 />
               </>
+            )}
+
+            {openAlert && (
+              <DeleteAlert
+                openAlert={openAlert}
+                action="deleteItem"
+                element={deleteElement}
+                onCloseAlert={() => {
+                  setDeleteElement(null);
+                  setOpenAlert(false);
+                }}
+                handleDeletedElement={deleteRow}
+              />
             )}
           </Card>
         </>

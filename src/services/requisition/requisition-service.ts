@@ -15,6 +15,10 @@ class RequisitionService {
     return httpRequests.put('/requisition', data);
   }
 
+  changeStatus(data: any) {
+    return httpRequests.patch('/requisition/change-status', data);
+  }
+
   getItem(data: any) {
     return httpRequests.post('/requisition/item/query', data);
   }
@@ -25,6 +29,10 @@ class RequisitionService {
 
   updateItem(data: any) {
     return httpRequests.put('/requisition/item', data);
+  }
+
+  deleteItem(data: any) {
+    return httpRequests.delete('/requisition/item', data);
   }
 }
 

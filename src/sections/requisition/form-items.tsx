@@ -1,11 +1,16 @@
+import 'dayjs/locale/es';
+
 import { z } from 'zod';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
-import { NumericFormat } from 'react-number-format';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FieldValues, useForm } from 'react-hook-form';
 
-import { Alert, Autocomplete, Button, Grid, MenuItem, TextField } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { Alert, Autocomplete, Button, Grid, TextField } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 
 import { _errors } from 'src/utils/input-errors';
 
@@ -34,60 +39,25 @@ export function FormItems({
   onCloseForm,
   handleSavedData,
 }: Props) {
-  const schema = z
-    .object({
-      PK: z.string().optional(),
-      SK: z.string().optional(),
-      ingredient: z.string().nonempty(_errors.required),
-      grossCost: z
-        .string()
-        .nonempty(_errors.required)
-        .regex(/^[0-9.]+$/, _errors.regex)
-        .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
-        .refine((val) => !(Number(val) < 0), {
-          message: `${_errors.min} 0`,
-        }),
-      quantity: z
-        .string()
-        .nonempty(_errors.required)
-        .regex(/^[0-9.]+$/, _errors.regex)
-        .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
-        .refine((val) => !(Number(val) < 0), {
-          message: `${_errors.min} 0`,
-        }),
-      brand: z
-        .string()
-        .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ&0-9-. ]+$/, _errors.regex)
-        .max(255, _errors.maxLength)
-        .optional()
-        .or(z.literal('')),
-      presentation: z
-        .string()
-        .regex(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ&0-9-. ]+$/, _errors.regex)
-        .max(255, _errors.maxLength)
-        .optional()
-        .or(z.literal('')),
-      yieldInclude: z.string().optional().or(z.literal('')),
-    })
-    .superRefine((data, ctx) => {
-      if (currentDishCategory === 'CATEGORY1' && !data.yieldInclude) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: _errors.required,
-          path: ['yieldInclude'],
-        });
-      }
-    });
+  const schema = z.object({
+    PK: z.string().optional(),
+    item: z.string().nonempty(_errors.required),
+    quantity: z
+      .string()
+      .nonempty(_errors.required)
+      .regex(/^[0-9.]+$/, _errors.regex)
+      .regex(/^([0-9]+.?[0-9]{0,2})$/, _errors.decimals)
+      .refine((val) => !(Number(val) < 0.01), {
+        message: `${_errors.min} 0.01`,
+      }),
+    requiredDate: z.string().nonempty(_errors.required),
+  });
 
   const defaultValues = {
     PK: '',
-    SK: '',
-    ingredient: '',
-    grossCost: '',
+    item: '',
     quantity: '',
-    brand: '',
-    presentation: '',
-    yieldInclude: '',
+    requiredDate: '',
   };
 
   type FormData = z.infer<typeof schema>;
@@ -96,13 +66,9 @@ export function FormItems({
   const [isLoading, setIsLoading] = useState(true);
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [ingredientList, setIngredientList] = useState<any[]>([]);
-  const [pricesList, setPricesList] = useState<any[]>([]);
-  const [currentDishCategory, setCurrentDishCategory] = useState('');
+  const [itemList, setItemList] = useState<any[]>([]);
 
-  const [selectedIngredient, setSelectedIngredient] = useState<any>({});
-  const [unitPrice, setUnitPrice] = useState(0);
-  const [total, setTotal] = useState(0);
+  const [selectedItem, setSelectedItem] = useState<any>({});
 
   const [isSavingData, setIsSavingData] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -114,8 +80,6 @@ export function FormItems({
     control,
     watch,
     formState: { errors },
-    clearErrors,
-    setValue,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -130,7 +94,7 @@ export function FormItems({
 
       reset(defaultValues);
       cleanMessages();
-      clearSelectedIngredient();
+      clearSelectedItem();
       setOpenDialog(true);
 
       const fetchData = async () => {
@@ -142,7 +106,6 @@ export function FormItems({
               PK: requisitionPK,
               SK: itemSK,
               action: 'UPDATE',
-              type: 'U',
             })
           );
         }
@@ -150,16 +113,13 @@ export function FormItems({
         axios
           .all(axiosRoutes)
           .then(
-            axios.spread((categoryRs, storageRs, dishRs) => {
-              if (action === 'update' && dishRs?.data) {
-                const data = dishRs.data;
+            axios.spread((itemRs, requisitionRs) => {
+              setItemList(itemRs?.data);
 
-                data.portions = String(data.portions);
-                data.costPercentage = String(data.costPercentage);
-                data.unforeseen = String(data.unforeseen);
-                data.iva = String(data.iva);
-                data.impoconsumo = String(data.impoconsumo);
-                data.fixedPrice = String(data.fixedPrice);
+              if (action === 'update' && requisitionRs?.data) {
+                const data = requisitionRs.data;
+
+                data.quantity = String(data.quantity);
 
                 reset(data);
               }
@@ -180,60 +140,23 @@ export function FormItems({
 
   useEffect(() => {
     const subscription = watch((values, { name }) => {
-      if (name === 'ingredient' && values.ingredient) {
-        const selected = ingredientList.find((item) => item.SK === values.ingredient);
+      if (name === 'item' && values.item) {
+        const selected = itemList.find((item) => item.PK === values.item);
         if (!selected) return;
 
-        const findPrice = pricesList.find((element: any) => element.SK === selected.SK);
-
-        if (selected.SK.includes('DISH')) {
-          setValue('grossCost', findPrice ? findPrice.price : selected.presentationCost);
-        } else {
-          if (findPrice) setValue('grossCost', findPrice.price);
-        }
-
-        setSelectedIngredient(selected || {});
-        calculateUnitPrice();
+        setSelectedItem(selected || {});
       }
     });
     return () => subscription.unsubscribe();
-  }, [ingredientList, watch]);
-
-  useEffect(() => {
-    if (selectedIngredient) {
-      calculateUnitPrice();
-    }
-  }, [selectedIngredient]);
-
-  const calculateUnitPrice = () => {
-    const unitPriceCalc = selectedIngredient.weight
-      ? Number(control._formValues.grossCost) / selectedIngredient.weight
-      : Number(control._formValues.grossCost) / 1;
-
-    setUnitPrice(unitPriceCalc);
-    calculateTotal();
-  };
-
-  const calculateTotal = () => {
-    const unitPriceCalc = selectedIngredient.weight
-      ? Number(control._formValues.grossCost) / selectedIngredient.weight
-      : Number(control._formValues.grossCost) / 1;
-
-    const totalCalc = unitPriceCalc * Number(control._formValues.quantity);
-
-    setTotal(totalCalc);
-  };
+  }, [itemList, watch]);
 
   const handleDialogClose = () => {
     setOpenDialog(false);
     onCloseForm();
   };
 
-  const clearSelectedIngredient = () => {
-    setSelectedIngredient({});
-    setValue('grossCost', '');
-    setUnitPrice(0);
-    setTotal(0);
+  const clearSelectedItem = () => {
+    setSelectedItem({});
   };
 
   const cleanMessages = () => {
@@ -245,17 +168,10 @@ export function FormItems({
     setIsSavingData(true);
     cleanMessages();
 
-    data.grossCost = Number(data.grossCost);
     data.quantity = Number(data.quantity);
-
-    if (!data.brand) delete data.brand;
-    if (!data.presentation) delete data.presentation;
-    if (!data.yieldInclude) delete data.yieldInclude;
-
     data.PK = requisitionPK;
 
     if (action === 'update') data.SK = itemSK;
-    else data.SK = itemSK;
 
     const itemRq =
       action === 'create'
@@ -267,9 +183,8 @@ export function FormItems({
         setSuccessMessage('Operación realizada con éxito');
         if (action === 'create') {
           reset(defaultValues);
-          clearSelectedIngredient();
+          clearSelectedItem();
         }
-        clearErrors(['grossCost']);
         setIsSavingData(false);
         handleSavedData(itemRs.data);
       })
@@ -305,44 +220,34 @@ export function FormItems({
         <>
           <form onSubmit={handleSubmit(onSubmit)}>
             <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 6, md: 2 }}>
-                <TextField
-                  disabled
-                  fullWidth
-                  size="small"
-                  label="Código"
-                  value={selectedIngredient.code ? selectedIngredient.code : ''}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 6 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Controller
-                  name="ingredient"
+                  name="item"
                   control={control}
                   render={({ field }) => {
-                    const selected = ingredientList.find((item) => item.SK === field.value) || '';
+                    const selected = itemList.find((item) => item.PK === field.value) || '';
 
                     return (
                       <Autocomplete
                         size="small"
                         {...field}
-                        options={ingredientList}
+                        options={itemList}
                         noOptionsText="No hay resultados"
                         getOptionLabel={(option) => option.name || ''}
-                        isOptionEqualToValue={(option, value) => option.SK === value.SK}
+                        isOptionEqualToValue={(option, value) => option.PK === value.PK}
                         value={selected}
                         onChange={(event, newValue) => {
-                          field.onChange(newValue ? newValue.SK : '');
+                          field.onChange(newValue ? newValue.PK : '');
                         }}
                         onInputChange={(event, newInputValue, reason) => {
-                          if (reason === 'clear') clearSelectedIngredient();
+                          if (reason === 'clear') clearSelectedItem();
                         }}
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Ingrediente *"
-                            error={Boolean(errors.ingredient)}
-                            helperText={errors.ingredient && errors.ingredient.message}
+                            label="Item *"
+                            error={Boolean(errors.item)}
+                            helperText={errors.item && errors.item.message}
                           />
                         )}
                       />
@@ -351,34 +256,17 @@ export function FormItems({
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Controller
-                  name="grossCost"
-                  control={control}
-                  render={({ field }) => (
-                    <NumericFormat
-                      disabled={isSavingData}
-                      fullWidth
-                      size="small"
-                      label="Costo bruto *"
-                      customInput={TextField}
-                      thousandSeparator
-                      decimalScale={2}
-                      fixedDecimalScale
-                      prefix="$ "
-                      error={Boolean(errors.grossCost)}
-                      helperText={errors.grossCost && errors.grossCost.message}
-                      value={field.value}
-                      onValueChange={(values) => {
-                        field.onChange(values.value);
-                        calculateUnitPrice();
-                      }}
-                    />
-                  )}
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <TextField
+                  disabled
+                  fullWidth
+                  size="small"
+                  label="Unidad de medida"
+                  value={selectedItem.unit ? selectedItem.unit : ''}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Controller
                   name="quantity"
                   control={control}
@@ -390,37 +278,6 @@ export function FormItems({
                       {...field}
                       error={Boolean(errors.quantity)}
                       helperText={errors.quantity && errors.quantity.message}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        calculateTotal();
-                      }}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <TextField
-                  disabled
-                  fullWidth
-                  size="small"
-                  label="Unidad"
-                  value={selectedIngredient.unit ? selectedIngredient.unit : ''}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Controller
-                  name="brand"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Marca/Proveedor"
-                      {...field}
-                      error={Boolean(errors.brand)}
-                      helperText={errors.brand && errors.brand.message}
                     />
                   )}
                 />
@@ -428,72 +285,28 @@ export function FormItems({
 
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Controller
-                  name="presentation"
+                  name="requiredDate"
                   control={control}
-                  render={({ field }) => (
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Presentación"
-                      {...field}
-                      error={Boolean(errors.presentation)}
-                      helperText={errors.presentation && errors.presentation.message}
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <NumericFormat
-                  disabled
-                  fullWidth
-                  size="small"
-                  label="Precio unitario"
-                  value={unitPrice}
-                  customInput={TextField}
-                  thousandSeparator
-                  decimalScale={2}
-                  fixedDecimalScale
-                  prefix="$ "
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <NumericFormat
-                  disabled
-                  fullWidth
-                  size="small"
-                  label="Importe"
-                  value={total}
-                  customInput={TextField}
-                  thousandSeparator
-                  decimalScale={2}
-                  fixedDecimalScale
-                  prefix="$ "
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <Controller
-                  disabled={currentDishCategory !== 'CATEGORY1'}
-                  name="yieldInclude"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      label={
-                        'Incluir en rendimiento' + (currentDishCategory === 'CATEGORY1' ? ' *' : '')
-                      }
-                      {...field}
-                      error={Boolean(errors.yieldInclude)}
-                      helperText={errors.yieldInclude && errors.yieldInclude.message}
-                    >
-                      <MenuItem value="">Seleccione</MenuItem>
-                      <MenuItem value="Si">Si</MenuItem>
-                      <MenuItem value="No">No</MenuItem>
-                    </TextField>
+                  render={({ field: { onChange, value, ...rest } }) => (
+                    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="es">
+                      <DatePicker
+                        disabled={isSavingData}
+                        label="Fecha requerida"
+                        slotProps={{
+                          textField: {
+                            size: 'small',
+                            fullWidth: true,
+                            error: Boolean(errors.requiredDate),
+                            helperText: errors.requiredDate && errors.requiredDate.message,
+                          },
+                        }}
+                        value={value ? dayjs(value) : null}
+                        onChange={(newValue) => {
+                          onChange(newValue ? newValue.toISOString() : null);
+                        }}
+                        {...rest}
+                      />
+                    </LocalizationProvider>
                   )}
                 />
               </Grid>
