@@ -5,6 +5,15 @@ export const getMenu = () => {
   return permissions;
 };
 
+export const getFormHeaderData = (formPK: string) => {
+  const form = permissions.filter((item: any) => item.PK === formPK)[0];
+  return {
+    code: form.code,
+    version: form.version,
+    date: form.date,
+  };
+};
+
 export const getFormPermissions = (formPK: string) =>
   permissions.filter((item: any) => item.PK === formPK)[0].permissions;
 

@@ -15,7 +15,11 @@ import {
   Typography,
 } from '@mui/material';
 
-import { getActionsList, verifyPermission } from 'src/utils/permissions-functions';
+import {
+  getActionsList,
+  getFormHeaderData,
+  verifyPermission,
+} from 'src/utils/permissions-functions';
 
 import sharedServices from 'src/services/shared/shared-services';
 import VendorService from 'src/services/vendor-registration/vendor-registration-service';
@@ -87,7 +91,7 @@ export function Search({
     'Tipo de actividad',
     'Experiencia',
   ];
-  const pdfColsWidth = ['10%', '13%', '10%', '10%', '10%', '10%', '10%', '12%', '15%'];
+  const pdfColsWidth = ['18%', '10%', '5%', '15%', '10%', '10%', '10%', '12%', '10%'];
   let filesData;
 
   const [selectedVendor, setSelectedVendor] = useState('');
@@ -220,40 +224,50 @@ export function Search({
           } else {
             const data = Array.isArray(res.data) ? res.data : [res.data];
 
-            // PENDIENTE
             const columns = [
-              { header: 'Persona', key: 'name', width: 30 },
-              { header: 'Nombre/Razón social', key: 'numberId', width: 30 },
-              { header: 'Tipo identificación', key: 'dv', width: 30 },
-              { header: 'Número', key: 'address', width: 30 },
-              { header: 'DV', key: 'cityName', width: 30 },
-              { header: 'País', key: 'departmentName', width: 30 },
-              { header: 'Ciudad', key: 'phone', width: 30 },
-              { header: 'Dirección', key: 'typeActivity', width: 30 },
-              { header: 'Teléfono', key: 'description', width: 30 },
-              { header: 'Email', key: 'experience', width: 30 },
-              { header: 'Web', key: 'ciiu', width: 30 },
-              { header: 'Persona', key: 'term', width: 30 },
-              { header: 'Nombre/Razón social', key: 'discount', width: 30 },
-              { header: 'Tipo identificación', key: 'bank', width: 30 },
-              { header: 'Número', key: 'accountNumber', width: 30 },
-              { header: 'DV', key: 'accountType', width: 30 },
-              { header: 'País', key: 'ivaType', width: 30 },
-              { header: 'Ciudad', key: 'incomeTaxPayer', width: 30 },
-              { header: 'Dirección', key: 'bigTaxPayer', width: 30 },
-              { header: 'Teléfono', key: 'resolutionBigTaxPayer', width: 30 },
-              { header: 'Email', key: 'dateBigTaxPayer', width: 30 },
-              { header: 'Web', key: 'selfRetaining', width: 30 },
-              { header: 'DV', key: 'resolutionSelfRetaining', width: 30 },
-              { header: 'País', key: 'dateSelfRetaining', width: 30 },
-              { header: 'Ciudad', key: 'industryTaxResponsible', width: 30 },
-              { header: 'Dirección', key: 'industryTaxCity', width: 30 },
-              { header: 'Teléfono', key: 'industryTaxCode', width: 30 },
-              { header: 'Email', key: 'industryTaxRate', width: 30 },
-              { header: 'Web', key: 'legalRepresentative', width: 30 },
+              { header: 'Nombre/Razón social', key: 'name', width: 30 },
+              { header: 'Número', key: 'numberId', width: 30 },
+              { header: 'DV', key: 'dv', width: 30 },
+              { header: 'Dirección', key: 'address', width: 30 },
+              { header: 'Ciudad', key: 'cityName', width: 30 },
+              { header: 'Departamento', key: 'departmentName', width: 30 },
+              { header: 'Teléfono', key: 'phone', width: 30 },
+              { header: 'Tipo de actividad', key: 'typeActivity', width: 30 },
+              {
+                header: 'Descripción del producto o servicio a ofrecer',
+                key: 'description',
+                width: 30,
+              },
+              { header: 'Experiencia', key: 'experience', width: 30 },
+              { header: 'CIIU', key: 'ciiu', width: 30 },
+              { header: 'Plazo de pago', key: 'term', width: 30 },
+              { header: '% Descuento', key: 'discount', width: 30 },
+              { header: 'Entidad bancaria', key: 'bank', width: 30 },
+              { header: 'No. de cuenta', key: 'accountNumber', width: 30 },
+              { header: 'Tipo de cuenta', key: 'accountType', width: 30 },
+              { header: 'Responsable IVA', key: 'ivaType', width: 30 },
+              { header: 'Contribuyente imporenta', key: 'incomeTaxPayer', width: 30 },
+              { header: 'Gran contribuyente', key: 'bigTaxPayer', width: 30 },
+              { header: 'No. resolución', key: 'resolutionBigTaxPayer', width: 30 },
+              { header: 'Fecha', key: 'dateBigTaxPayer', width: 30 },
+              { header: 'Autorretenedor', key: 'selfRetaining', width: 30 },
+              { header: 'No. resolución', key: 'resolutionSelfRetaining', width: 30 },
+              { header: 'Fecha', key: 'dateSelfRetaining', width: 30 },
+              {
+                header: 'Responsable impuesto de industria y comercio',
+                key: 'industryTaxResponsible',
+                width: 30,
+              },
+              { header: 'Ciudad', key: 'industryTaxCityName', width: 30 },
+              { header: 'Código activo', key: 'industryTaxCode', width: 30 },
+              { header: 'Tarifa', key: 'industryTaxRate', width: 30 },
+              { header: 'Representante legal', key: 'legalRepresentative', width: 30 },
             ];
 
-            sharedServices.exportExcel(filesTitle, columns, data);
+            sharedServices.exportExcel(filesTitle, columns, data, [
+              'dateBigTaxPayer',
+              'dateSelfRetaining',
+            ]);
           }
           setIsLoading(false);
         })
@@ -297,7 +311,8 @@ export function Search({
     const vendorRq = VendorService.getVendor(query);
 
     vendorRq.then(async (res) => {
-      await sharedServices.exportPdf(<VendorPrint />);
+      const headerData = getFormHeaderData(formPK);
+      await sharedServices.exportPdf(<VendorPrint headerData={headerData} data={res.data} />);
       setIsPrintingVendor(false);
     });
   };

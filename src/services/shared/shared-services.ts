@@ -26,7 +26,7 @@ class SharedServices {
     window.open(url, '_blank');
   };
 
-  exportExcel = async (fileName: string, columns: any, data: any) => {
+  exportExcel = async (fileName: string, columns: any, data: any, modifyData?: any) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Sheet 1');
 
@@ -35,6 +35,14 @@ class SharedServices {
     worksheet.getRow(1).font = { bold: true };
 
     data.forEach((row: any) => {
+      if (modifyData) {
+        modifyData.forEach((element: string) => {
+          if (element.toLowerCase().includes('date')) {
+            row[element] = row[element].slice(0, 10);
+          }
+        });
+      }
+
       worksheet.addRow(row);
     });
 

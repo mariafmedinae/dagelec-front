@@ -12,8 +12,6 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
-import sharedServices from 'src/services/shared/shared-services';
-import VendorPrint from '../vendor-registration/vendor-print';
 
 // ----------------------------------------------------------------------
 
@@ -125,9 +123,6 @@ export function DashboardView() {
           </Grid>
         </>
       )}
-      <Button variant="contained" onClick={() => sharedServices.exportPdf(<VendorPrint />)}>
-        Imprimir
-      </Button>
     </DashboardContent>
   );
 }
