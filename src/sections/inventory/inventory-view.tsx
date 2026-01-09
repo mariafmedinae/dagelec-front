@@ -7,35 +7,28 @@ import { getFormPermissions, verifyPermission } from 'src/utils/permissions-func
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import sharedServices from 'src/services/shared/shared-services';
-import PersonalService from 'src/services/personal-registration/personal-registration-service';
+import ItemService from 'src/services/item-coding/item-coding-service';
 
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
 
-import { Form, Items, Search } from 'src/sections/requisition';
+import { Form, Search } from 'src/sections/inventory';
 
 // ----------------------------------------------------------------------
 
-export function RequisitionView() {
+export function InventoryView() {
   const [loadLists, setLoadLists] = useState(true);
 
   const [globalError, setGlobalError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [requesterList, setRequesterList] = useState([]);
-  const [costCenterList, setCostCenterList] = useState([]);
+  const [storeList, setStoreList] = useState([]);
+  const [itemList, setItemList] = useState([]);
 
   const [openForm, setOpenForm] = useState(false);
   const [formAction, setFormAction] = useState('');
-  const [PK, setPK] = useState('');
 
-  const [manageItem, setManageItem] = useState(false);
-  const [managedPK, setManagedPK] = useState('');
-  const [triggerManage, setTriggerManage] = useState(0);
-
-  const [savedData, setSavedData] = useState();
-
-  const formPK = 'REQUISITION';
+  const formPK = 'INVENTORY';
   const permissionsList = getFormPermissions(formPK);
 
   useEffect(() => {
@@ -46,16 +39,17 @@ export function RequisitionView() {
       if (verifyPermission(permissionsList, formPK, 'SEARCH')) {
         const fetchData = async () => {
           const axiosRoutes = [
-            PersonalService.getUser({ all: 'ALL' }),
-            sharedServices.getList({ entity: 'COST' }),
+            ItemService.getItem({ all: 'ALL' }),
+            sharedServices.getList({ entity: 'STORE' }),
           ];
 
           axios
             .all(axiosRoutes)
             .then(
-              axios.spread((requesterRs, costCenterRs) => {
-                setRequesterList(requesterRs.data);
-                setCostCenterList(costCenterRs.data);
+              axios.spread((itemRs, storeRs, inventoryRs) => {
+                setItemList(itemRs.data);
+                setStoreList(storeRs.data);
+
                 setIsLoading(false);
                 setGlobalError(false);
                 setTimeout(() => setLoadLists(false), 500);
@@ -75,18 +69,6 @@ export function RequisitionView() {
   const onOpenForm = () => {
     setFormAction('create');
     setOpenForm(true);
-  };
-
-  const onUpdateForm = (itemId: string) => {
-    setFormAction('update');
-    setPK(itemId);
-    setOpenForm(true);
-  };
-
-  const onManage = (Id: string) => {
-    setManagedPK(Id);
-    setTriggerManage((prev) => prev + 1);
-    setManageItem(true);
   };
 
   return (
@@ -114,7 +96,7 @@ export function RequisitionView() {
             },
           }}
         >
-          Requisiciones
+          Inventario
         </Typography>
         <Button
           sx={{
@@ -126,7 +108,7 @@ export function RequisitionView() {
           startIcon={<Iconify icon="mingcute:add-line" />}
           onClick={onOpenForm}
         >
-          Nueva requisición
+          Nuevo item
         </Button>
       </Box>
 
@@ -149,13 +131,10 @@ export function RequisitionView() {
         <Form
           openForm={openForm}
           action={formAction}
-          PK={PK}
           onCloseForm={() => {
             setLoadLists(true);
-            setPK('');
             setOpenForm(false);
           }}
-          handleSavedData={(data) => setSavedData(data)}
         />
       )}
 
@@ -164,25 +143,9 @@ export function RequisitionView() {
           <Search
             formPK={formPK}
             permissionsList={permissionsList}
-            requesterList={requesterList}
-            costCenterList={costCenterList}
-            savedData={savedData}
-            handleUpdateAction={(data) => onUpdateForm(data)}
-            handleManageAction={(data) => onManage(data)}
-            hideItemSection={() => {
-              setManagedPK('');
-              setManageItem(false);
-            }}
+            itemList={itemList}
+            storeList={storeList}
           />
-
-          {manageItem && (
-            <Items
-              permissionsList={permissionsList}
-              clickedManage={triggerManage}
-              managedPK={managedPK}
-              savedRequisitionData={savedData}
-            />
-          )}
         </Box>
       )}
     </DashboardContent>

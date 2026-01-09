@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 import { PrintHeader } from 'src/components/pdf';
 
@@ -9,92 +9,63 @@ interface Props {
   data: any;
 }
 
-const styles = StyleSheet.create({
-  page: {
-    padding: '30px',
-    paddingTop: '85px',
-    fontSize: 8,
-    fontFamily: 'Helvetica',
-    backgroundColor: '#fff',
-  },
-  table: {
-    width: 'auto',
-    display: 'flex',
-    borderStyle: 'solid',
-    borderWidth: 2,
-    borderColor: '#000',
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-  },
-  tableRow: {
-    flexDirection: 'row',
-  },
-  tableCell: {
-    borderStyle: 'solid',
-    borderWidth: 2,
-    borderColor: '#000',
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    padding: 2,
-    fontSize: 8,
-    textAlign: 'left',
-  },
-  headerCell: {
-    backgroundColor: '#dbdbdbff',
-  },
-  headerCellText: {
-    color: '#000',
-  },
-  textCentered: {
-    textAlign: 'center',
-  },
-  boldText: {
-    fontWeight: 700,
-  },
-  rotatedText: {
-    transformOrigin: 'center',
-  },
-  paragraph: {
-    lineHeight: 0.6,
-  },
-  noRightBorder: {
-    borderRightWidth: 0,
-  },
-  noBottomBorder: {
-    borderBottomWidth: 0,
-  },
-  headerTable: {
-    width: 'auto',
-    display: 'flex',
-    borderStyle: 'solid',
-    borderWidth: 2,
-    borderColor: '#000',
-    borderRadius: 10,
-  },
-  headerImage: {
-    width: '155px',
-    objectFit: 'contain',
-  },
-  centeredContent: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 10,
-    fontWeight: 700,
-  },
-  headerContainer: {
-    position: 'absolute',
-    top: '30px',
-    left: '30px',
-    right: 0,
-    width: '553px',
-    height: 'auto',
-  },
-});
-
 export default function VendorPrint({ headerData, data }: Props) {
+  const styles = StyleSheet.create({
+    page: {
+      padding: '30px',
+      paddingTop: '85px',
+      fontSize: 8,
+      fontFamily: 'Helvetica',
+      backgroundColor: '#fff',
+    },
+    table: {
+      width: 'auto',
+      display: 'flex',
+      borderStyle: 'solid',
+      borderWidth: 2,
+      borderColor: '#000',
+      borderRightWidth: 0,
+      borderBottomWidth: 0,
+    },
+    tableRow: {
+      flexDirection: 'row',
+    },
+    tableCell: {
+      borderStyle: 'solid',
+      borderWidth: 2,
+      borderColor: '#000',
+      borderLeftWidth: 0,
+      borderTopWidth: 0,
+      padding: 2,
+      fontSize: 8,
+      textAlign: 'left',
+    },
+    headerCell: {
+      backgroundColor: '#dbdbdbff',
+    },
+    headerCellText: {
+      color: '#000',
+    },
+    textCentered: {
+      textAlign: 'center',
+    },
+    boldText: {
+      fontWeight: 700,
+    },
+    rotatedText: {
+      transformOrigin: 'center',
+    },
+    paragraph: {
+      lineHeight: 0.6,
+    },
+    noRightBorder: {
+      borderRightWidth: 0,
+    },
+    noBottomBorder: {
+      borderBottomWidth: 0,
+    },
+  });
+
   const commercialContacts = data.contacts.filter((item: any) => item.typeContact === 'COMERCIAL');
   const accountantContacts = data.contacts.filter((item: any) => item.typeContact === 'CONTABLE');
 
@@ -373,7 +344,7 @@ export default function VendorPrint({ headerData, data }: Props) {
 
               <View style={styles.tableRow} wrap={false}>
                 <View style={[styles.tableCell, { width: '70%' }]}>
-                  <Text>{data.vendor.description}</Text>
+                  <Text style={styles.paragraph}>{data.vendor.description}</Text>
                 </View>
                 <View style={[styles.tableCell, { width: '30%', padding: 0 }]}>
                   <View style={styles.tableRow} wrap={false}>

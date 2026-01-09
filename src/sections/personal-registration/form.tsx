@@ -130,6 +130,22 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
           path: ['status'],
         });
       }
+
+      if (!isValidUserId && data.documentId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: userIdErrorMessage,
+          path: ['documentId'],
+        });
+      }
+
+      if (!isValidUsername && data.username) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: usernameErrorMessage,
+          path: ['username'],
+        });
+      }
     });
 
   const defaultValues = {
@@ -162,6 +178,12 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   const [entityAdd, setEntityAdd] = useState('');
   const [currentAddData, setCurrentAddData] = useState<any[]>([]);
 
+  const [isValidUserId, setIsValidUserId] = useState(true);
+  const userIdErrorMessage = 'Este usuario ya existe. Debe ingresar otro número de identificación.';
+
+  const [isValidUsername, setIsValidUsername] = useState(true);
+  const usernameErrorMessage = 'Este usuario ya existe. Debe ingresar otro nombre de usuario.';
+
   const [isThereUser, setIsThereUser] = useState(false);
   const [userExists, setUserExists] = useState(false);
 
@@ -183,6 +205,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     control,
     formState: { errors },
     clearErrors,
+    setError,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -302,6 +325,62 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     setFile(event.target.files[0]);
   };
 
+  const verifyUserId = async () => {
+    cleanMessages();
+    clearErrors(['documentId']);
+
+    if (control._formValues.documentId.length !== 0) {
+      const userRq = personalRegistrationService.getUser({
+        documentId: control._formValues.documentId,
+        action: 'SEARCH',
+      });
+
+      userRq
+        .then((userRs) => {
+          if (userRs.data.length > 0) {
+            setIsValidUserId(false);
+            setErrorMessage(userIdErrorMessage);
+            setError('documentId', {
+              type: 'manual',
+              message: userIdErrorMessage,
+            });
+            return;
+          }
+        })
+        .catch((error) => {
+          setIsValidUserId(true);
+        });
+    }
+  };
+
+  const verifyUsername = async () => {
+    cleanMessages();
+    clearErrors(['username']);
+
+    if (control._formValues.username.length !== 0) {
+      const userRq = personalRegistrationService.getUser({
+        username: control._formValues.username,
+        action: 'SEARCH',
+      });
+
+      userRq
+        .then((userRs) => {
+          if (userRs.data.length > 0) {
+            setIsValidUsername(false);
+            setErrorMessage(usernameErrorMessage);
+            setError('username', {
+              type: 'manual',
+              message: usernameErrorMessage,
+            });
+            return;
+          }
+        })
+        .catch((error) => {
+          setIsValidUsername(true);
+        });
+    }
+  };
+
   const cleanMessages = () => {
     setSuccessMessage('');
     setErrorMessage('');
@@ -313,6 +392,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     if (action === 'create') {
       reset(defaultValues);
       setValue('birthDate', '');
+      if (isThereUser) setValue('status', 'ACTIVE');
     }
   };
 
@@ -413,12 +493,14 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                   control={control}
                   render={({ field }) => (
                     <TextField
+                      disabled={action === 'update'}
                       fullWidth
                       size="small"
                       label="Cédula *"
                       {...field}
                       error={Boolean(errors.documentId)}
                       helperText={errors.documentId && errors.documentId.message}
+                      onBlur={verifyUserId}
                     />
                   )}
                 />
@@ -586,6 +668,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                       {...field}
                       error={Boolean(errors.username)}
                       helperText={errors.username && errors.username.message}
+                      onBlur={verifyUsername}
                     />
                   )}
                 />
@@ -661,7 +744,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                 />
               </Grid>
 
-              <Grid
+              {/* <Grid
                 size={12}
                 sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}
               >
@@ -690,7 +773,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                     Descargar archivo adjunto
                   </Link>
                 )}
-              </Grid>
+              </Grid> */}
 
               {errorMessage !== '' && (
                 <Grid size={12}>

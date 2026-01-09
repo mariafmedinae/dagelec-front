@@ -175,6 +175,14 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
           path: ['industryTaxRate'],
         });
       }
+
+      if (!isValidNumberId && data.numberId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: numberIdErrorMessage,
+          path: ['numberId'],
+        });
+      }
     });
 
   const defaultValues = {
@@ -223,6 +231,10 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   const [entityAdd, setEntityAdd] = useState('');
   const [currentAddData, setCurrentAddData] = useState<any[]>([]);
 
+  const [isValidNumberId, setIsValidNumberId] = useState(true);
+  const numberIdErrorMessage =
+    'Este proveedor ya existe. Debe ingresar otro número de identificación.';
+
   const [isSavingData, setIsSavingData] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -234,6 +246,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     control,
     formState: { errors },
     clearErrors,
+    setError,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -341,6 +354,34 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     }
   };
 
+  const verifyNumberId = async () => {
+    cleanMessages();
+    clearErrors(['numberId']);
+
+    if (control._formValues.numberId.length !== 0) {
+      const vendorRq = VendorService.getVendor({
+        numberId: control._formValues.numberId,
+        action: 'SEARCH',
+      });
+
+      vendorRq
+        .then((vendorRs) => {
+          if (vendorRs.data.length > 0) {
+            setIsValidNumberId(false);
+            setErrorMessage(numberIdErrorMessage);
+            setError('numberId', {
+              type: 'manual',
+              message: numberIdErrorMessage,
+            });
+            return;
+          }
+        })
+        .catch((error) => {
+          setIsValidNumberId(true);
+        });
+    }
+  };
+
   const cleanMessages = () => {
     setSuccessMessage('');
     setErrorMessage('');
@@ -443,6 +484,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                       {...field}
                       error={Boolean(errors.numberId)}
                       helperText={errors.numberId && errors.numberId.message}
+                      onBlur={verifyNumberId}
                     />
                   )}
                 />

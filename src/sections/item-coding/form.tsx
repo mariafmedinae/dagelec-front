@@ -11,12 +11,8 @@ import {
   Grid,
   IconButton,
   InputAdornment,
-  List,
-  ListItem,
-  ListItemText,
   MenuItem,
   TextField,
-  Typography,
 } from '@mui/material';
 
 import { _errors } from 'src/utils/input-errors';
@@ -60,7 +56,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
       if (!isValidName && data.name) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Ingrese un nombre que no exista',
+          message: nameErrorMessage,
           path: ['name'],
         });
       }
@@ -68,7 +64,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
       if (!isValidReference && data.reference) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Ingrese una referencia que no exista',
+          message: referenceErrorMessage,
           path: ['reference'],
         });
       }
@@ -97,7 +93,9 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   const [subgroupList, setSubgroupList] = useState<any[]>([]);
 
   const [isValidName, setIsValidName] = useState(true);
+  const nameErrorMessage = 'Un item con este nombre ya existe. Utilice un nombre diferente.';
   const [isValidReference, setIsValidReference] = useState(true);
+  const referenceErrorMessage = 'Esta referencia ya existe. Utilice una referencia diferente.';
 
   const [openDialogAdd, setOpenDialogAdd] = useState(false);
   const [lableAdd, setLabelAdd] = useState('');
@@ -115,6 +113,8 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     setValue,
     control,
     formState: { errors },
+    clearErrors,
+    setError,
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues,
@@ -239,44 +239,58 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
 
   const verifyName = async () => {
     cleanMessages();
+    clearErrors(['name']);
 
-    const itemRq = ItemService.getItem({
-      name: control._formValues.name,
-    });
-
-    itemRq
-      .then((itemRs) => {
-        if (itemRs.data.length > 0) {
-          setIsValidName(false);
-          setErrorMessage('Este item ya existe. Utilice un nombre diferente.');
-          return;
-        }
-      })
-      .catch((error) => {
-        setIsValidName(true);
+    if (control._formValues.name.length !== 0) {
+      const itemRq = ItemService.getItem({
+        name: control._formValues.name,
       });
+
+      itemRq
+        .then((itemRs) => {
+          if (itemRs.data.length > 0) {
+            setIsValidName(false);
+            setErrorMessage(nameErrorMessage);
+            setError('name', {
+              type: 'manual',
+              message: nameErrorMessage,
+            });
+            return;
+          }
+        })
+        .catch((error) => {
+          setIsValidName(true);
+        });
+    }
   };
 
   const verifyReference = async () => {
     cleanMessages();
+    clearErrors(['reference']);
 
-    const itemRq = ItemService.getItem({
-      reference: control._formValues.reference,
-    });
-
-    itemRq
-      .then((itemRs) => {
-        if (itemRs.data.length > 0) {
-          setIsValidReference(false);
-          setErrorMessage(
-            `Esta referencia ya existe y está siendo utilizada por el item: ${itemRs.data[0].name}. Utilice una referencia diferente.`
-          );
-          return;
-        }
-      })
-      .catch((error) => {
-        setIsValidReference(true);
+    if (control._formValues.reference.length !== 0) {
+      const itemRq = ItemService.getItem({
+        reference: control._formValues.reference,
       });
+
+      itemRq
+        .then((itemRs) => {
+          if (itemRs.data.length > 0) {
+            setIsValidReference(false);
+            setErrorMessage(
+              `Esta referencia ya existe y está siendo utilizada por el item: ${itemRs.data[0].name}. Utilice una referencia diferente.`
+            );
+            setError('reference', {
+              type: 'manual',
+              message: referenceErrorMessage,
+            });
+            return;
+          }
+        })
+        .catch((error) => {
+          setIsValidReference(true);
+        });
+    }
   };
 
   const cleanMessages = () => {

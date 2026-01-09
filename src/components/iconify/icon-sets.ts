@@ -152,4 +152,10 @@ export default {
   'material-symbols:order-approve': {
     body: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m17.275 20.25l3.475-3.45l-1.05-1.05l-2.425 2.375l-.975-.975l-1.05 1.075zM6 9h12V7H6zm12 14q-2.075 0-3.537-1.463T13 18t1.463-3.537T18 13t3.538 1.463T23 18t-1.463 3.538T18 23M3 22V5q0-.825.588-1.412T5 3h14q.825 0 1.413.588T21 5v6.675q-.7-.35-1.463-.513T18 11H6v2h7.1q-.425.425-.787.925T11.675 15H6v2h5.075q-.05.25-.062.488T11 18q0 1.05.288 2.013t.862 1.837L12 22l-1.5-1.5L9 22l-1.5-1.5L6 22l-1.5-1.5z" /></svg>',
   },
+  'icon-park-solid:stock-market': {
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" d="M6 20h8v14H6zm14-6h8v26h-8z" /><path stroke-linecap="round" d="M24 44v-4" /><path fill="currentColor" d="M34 12h8v9h-8z" /><path stroke-linecap="round" d="M10 20V10m28 24V21m0-9V4" />	</g></svg>',
+  },
+  'jam:document-f': {
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="-4 -2 24 24"><path fill="currentColor" d="M3 0h10a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H3a3 3 0 0 1-3-3V3a3 3 0 0 1 3-3m1 7a1 1 0 1 0 0 2h8a1 1 0 0 0 0-2zm0 8a1 1 0 0 0 0 2h5a1 1 0 0 0 0-2zM4 3a1 1 0 1 0 0 2h8a1 1 0 0 0 0-2zm0 8a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2z" /></svg>',
+  },
 };

@@ -6,23 +6,19 @@ import { useForm, FieldValues, Controller } from 'react-hook-form';
 
 import {
   Alert,
-  Autocomplete,
   Button,
   Grid,
   IconButton,
   InputAdornment,
-  List,
-  ListItem,
-  ListItemText,
   MenuItem,
   TextField,
-  Typography,
 } from '@mui/material';
 
 import { _errors } from 'src/utils/input-errors';
 
 import sharedServices from 'src/services/shared/shared-services';
 import RequisitionService from 'src/services/requisition/requisition-service';
+import PersonalService from 'src/services/personal-registration/personal-registration-service';
 
 import { Iconify } from 'src/components/iconify';
 import { Loading } from 'src/components/loading';
@@ -46,6 +42,9 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     deliveryPlace: z.string().nonempty(_errors.required).max(255, _errors.maxLength),
     costCenter: z.string().nonempty(_errors.required),
     observations: z.string().max(1020, _errors.maxLength).optional().or(z.literal('')),
+    checker1: z.string().nonempty(_errors.required),
+    checker2: z.string().optional().or(z.literal('')),
+    approver: z.string().nonempty(_errors.required),
   });
 
   const defaultValues = {
@@ -54,6 +53,9 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
     deliveryPlace: '',
     costCenter: '',
     observations: '',
+    checker1: '',
+    checker2: '',
+    approver: '',
   };
 
   type FormData = z.infer<typeof schema>;
@@ -65,6 +67,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
   const [cityList, setCityList] = useState<any[]>([]);
   const [proccessList, setProccessList] = useState<any[]>([]);
   const [costCenterList, setCostCenterList] = useState<any[]>([]);
+  const [userList, setUserList] = useState<any[]>([]);
 
   const [openDialogAdd, setOpenDialogAdd] = useState(false);
   const [lableAdd, setLabelAdd] = useState('');
@@ -102,6 +105,7 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
           sharedServices.getList({ entity: 'CITY' }),
           sharedServices.getList({ entity: 'PROCCESS' }),
           sharedServices.getList({ entity: 'COST' }),
+          PersonalService.getUser({ all: 'ALL' }),
         ];
 
         if (action === 'update')
@@ -112,10 +116,11 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
         axios
           .all(axiosRoutes)
           .then(
-            axios.spread((cityRs, proccessRs, costCenterRs, resquisitionRs) => {
+            axios.spread((cityRs, proccessRs, costCenterRs, userRs, resquisitionRs) => {
               setCityList(cityRs.data);
               setProccessList(proccessRs.data);
               setCostCenterList(costCenterRs.data);
+              setUserList(userRs.data);
 
               if (action === 'update' && resquisitionRs?.data) {
                 const data = resquisitionRs.data;
@@ -326,6 +331,81 @@ export function Form({ openForm, action, PK, onCloseForm, handleSavedData }: Pro
                       {costCenterList.map((costCenter: any) => (
                         <MenuItem key={costCenter.PK} value={costCenter.PK}>
                           {costCenter.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="checker1"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Revisión 1 *"
+                      {...field}
+                      error={Boolean(errors.checker1)}
+                      helperText={errors.checker1 && errors.checker1.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      {userList.map((user: any) => (
+                        <MenuItem key={user.PK} value={user.PK}>
+                          {user.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <Controller
+                  name="checker2"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Revisión 2 (HSE si aplica)"
+                      {...field}
+                      error={Boolean(errors.checker2)}
+                      helperText={errors.checker2 && errors.checker2.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      {userList.map((user: any) => (
+                        <MenuItem key={user.PK} value={user.PK}>
+                          {user.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12, sm: 12, md: 4 }}>
+                <Controller
+                  name="approver"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Aprueba *"
+                      {...field}
+                      error={Boolean(errors.approver)}
+                      helperText={errors.approver && errors.approver.message}
+                    >
+                      <MenuItem value="">Seleccione</MenuItem>
+                      {userList.map((user: any) => (
+                        <MenuItem key={user.PK} value={user.PK}>
+                          {user.name}
                         </MenuItem>
                       ))}
                     </TextField>

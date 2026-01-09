@@ -23,7 +23,11 @@ import {
   Typography,
 } from '@mui/material';
 
-import { getActionsList, verifyPermission } from 'src/utils/permissions-functions';
+import {
+  getActionsList,
+  getFormHeaderData,
+  verifyPermission,
+} from 'src/utils/permissions-functions';
 
 import sharedServices from 'src/services/shared/shared-services';
 import RequisitionService from 'src/services/requisition/requisition-service';
@@ -48,7 +52,7 @@ import { RequisitionPrint } from './requisition-print';
 interface Props {
   formPK: string;
   permissionsList: any;
-  applicantList: any;
+  requesterList: any;
   costCenterList: any;
   savedData: any;
   handleUpdateAction: (PK: string) => void;
@@ -59,7 +63,7 @@ interface Props {
 export function Search({
   formPK,
   permissionsList,
-  applicantList,
+  requesterList,
   costCenterList,
   savedData,
   handleUpdateAction,
@@ -72,7 +76,7 @@ export function Search({
     costCenterName: string;
     costCenterCode: string;
     proccessName: string;
-    applicantName: string;
+    requesterName: string;
     status: string;
   };
 
@@ -83,7 +87,7 @@ export function Search({
     { id: 'costCenterName', label: 'Proyecto' },
     { id: 'costCenterCode', label: 'Código proyecto' },
     { id: 'proccessName', label: 'Proceso' },
-    { id: 'applicantName', label: 'Solicitante' },
+    { id: 'requesterName', label: 'Solicitante' },
     { id: 'status', label: 'Estado' },
   ];
 
@@ -102,7 +106,7 @@ export function Search({
   const pdfColsWidth = ['5%', '10%', '10%', '15%', '10%', '10%', '15%', '15%', '10%'];
   let filesData;
 
-  const [selectedApplicant, setSelectedApplicant] = useState('');
+  const [selectedRequester, setSelectedRequester] = useState('');
   const [selectedCostCenter, setSelectedCostCenter] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedStartDate, setSelectedStartDate] = useState<any>(null);
@@ -158,7 +162,7 @@ export function Search({
           setSearchResult([savedData, ...searchResult]);
         }
       } else {
-        setSelectedApplicant('');
+        setSelectedRequester('');
         setSelectedCostCenter('');
         setSelectedStatus('');
         setSelectedStartDate(null);
@@ -173,7 +177,7 @@ export function Search({
 
   useEffect(() => {
     if (selectedPending) {
-      setSelectedApplicant('');
+      setSelectedRequester('');
       setSelectedCostCenter('');
       setSelectedStatus('');
       setSelectedStartDate(null);
@@ -184,7 +188,7 @@ export function Search({
   useEffect(() => {
     if (requestType && isLoading) {
       const query: Record<string, string> = {};
-      if (selectedApplicant) query.applicant = selectedApplicant;
+      if (selectedRequester) query.requester = selectedRequester;
       if (selectedCostCenter) query.costCenter = selectedCostCenter;
       if (selectedStatus) query.status = selectedStatus;
       if (selectedStartDate) query.startDate = selectedStartDate;
@@ -231,7 +235,7 @@ export function Search({
               item.costCenterName,
               item.costCenterCode,
               item.proccessName,
-              item.applicantName,
+              item.requesterName,
               item.deliveryPlace,
               item.status,
             ]);
@@ -254,7 +258,7 @@ export function Search({
               { header: 'Proyecto', key: 'costCenterName', width: 30 },
               { header: 'Código proyecto', key: 'costCenterCode', width: 30 },
               { header: 'Proceso', key: 'proccessName', width: 30 },
-              { header: 'Solicitante', key: 'applicantName', width: 30 },
+              { header: 'Solicitante', key: 'requesterName', width: 30 },
               { header: 'Lugar de entrega', key: 'deliveryPlace', width: 30 },
               { header: 'Estado', key: 'status', width: 30 },
             ];
@@ -277,7 +281,7 @@ export function Search({
     hideItemSection();
 
     if (
-      !selectedApplicant &&
+      !selectedRequester &&
       !selectedCostCenter &&
       !selectedStatus &&
       !selectedStartDate &&
@@ -310,7 +314,8 @@ export function Search({
     const requisitionRq = RequisitionService.getRequisition(query);
 
     requisitionRq.then(async (res) => {
-      await sharedServices.exportPdf(<RequisitionPrint data={res.data} />);
+      const headerData = getFormHeaderData(formPK);
+      await sharedServices.exportPdf(<RequisitionPrint headerData={headerData} data={res.data} />);
       setIsPrintingRequisition(false);
     });
   };
@@ -358,13 +363,13 @@ export function Search({
                   fullWidth
                   size="small"
                   label="Solicitante"
-                  value={selectedApplicant}
-                  onChange={(e) => setSelectedApplicant(e.target.value)}
+                  value={selectedRequester}
+                  onChange={(e) => setSelectedRequester(e.target.value)}
                 >
                   <MenuItem value="">Seleccione</MenuItem>
-                  {applicantList.map((applicant: any) => (
-                    <MenuItem key={applicant.PK} value={applicant.PK}>
-                      {applicant.name}
+                  {requesterList.map((requester: any) => (
+                    <MenuItem key={requester.PK} value={requester.PK}>
+                      {requester.name}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -536,6 +541,7 @@ export function Search({
                           tableActions={dynamicTableActions}
                           onUpdateAction={() => handleUpdateAction(row.PK)}
                           onManageAction={() => handleManageAction(row.PK)}
+                          isCreatingPrint={isPrintingRequisition}
                           onPrintAction={() => handlePrintAction(row.PK)}
                           onApproveAction={() => {
                             setChangeStatusPK(row.PK);
