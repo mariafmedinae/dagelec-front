@@ -143,16 +143,75 @@ export function Search({
     if (savedData) {
       setErrorMessage('');
 
+      const createdAt = dayjs(savedData.createdAt).toISOString();
+
       let validation;
 
-      // if (selectedCategory && selectedGroup && selectedSubgroup)
-      //   validation =
-      //     savedData.category === selectedCategory &&
-      //     savedData.group === selectedGroup &&
-      //     savedData.subgroup === selectedSubgroup;
-      // else if (selectedCategory && selectedGroup)
-      //   validation = savedData.category === selectedCategory && savedData.group === selectedGroup;
-      // else if (selectedCategory) validation = savedData.category === selectedCategory;
+      if (
+        selectedRequester &&
+        selectedCostCenter &&
+        selectedStatus &&
+        selectedStartDate &&
+        selectedFinishDate
+      )
+        validation =
+          savedData.requester === selectedRequester &&
+          savedData.costCenter === selectedCostCenter &&
+          savedData.status === selectedStatus &&
+          createdAt >= selectedStartDate &&
+          createdAt <= selectedFinishDate;
+      else if (selectedRequester && selectedCostCenter && selectedStatus)
+        validation =
+          savedData.requester === selectedRequester &&
+          savedData.costCenter === selectedCostCenter &&
+          savedData.status === selectedStatus;
+      else if (selectedRequester && selectedCostCenter && selectedStartDate && selectedFinishDate)
+        validation =
+          savedData.requester === selectedRequester &&
+          savedData.costCenter === selectedCostCenter &&
+          createdAt >= selectedStartDate &&
+          createdAt <= selectedFinishDate;
+      else if (selectedRequester && selectedStatus && selectedStartDate && selectedFinishDate)
+        validation =
+          savedData.requester === selectedRequester &&
+          savedData.status === selectedStatus &&
+          createdAt >= selectedStartDate &&
+          createdAt <= selectedFinishDate;
+      else if (selectedCostCenter && selectedStatus && selectedStartDate && selectedFinishDate)
+        validation =
+          savedData.costCenter === selectedCostCenter &&
+          savedData.status === selectedStatus &&
+          createdAt >= selectedStartDate &&
+          createdAt <= selectedFinishDate;
+      else if (selectedRequester && selectedCostCenter)
+        validation =
+          savedData.requester === selectedRequester && savedData.costCenter === selectedCostCenter;
+      else if (selectedRequester && selectedStatus)
+        validation =
+          savedData.requester === selectedRequester && savedData.status === selectedStatus;
+      else if (selectedRequester && selectedStartDate && selectedFinishDate)
+        validation =
+          savedData.requester === selectedRequester &&
+          createdAt >= selectedStartDate &&
+          createdAt <= selectedFinishDate;
+      else if (selectedCostCenter && selectedStartDate && selectedFinishDate)
+        validation =
+          savedData.costCenter === selectedCostCenter &&
+          createdAt >= selectedStartDate &&
+          createdAt <= selectedFinishDate;
+      else if (selectedCostCenter && selectedStatus)
+        validation =
+          savedData.costCenter === selectedCostCenter && savedData.status === selectedStatus;
+      else if (selectedStatus && selectedStartDate && selectedFinishDate)
+        validation =
+          savedData.status === selectedStatus &&
+          createdAt >= selectedStartDate &&
+          createdAt <= selectedFinishDate;
+      else if (selectedRequester) validation = savedData.requester === selectedRequester;
+      else if (selectedCostCenter) validation = savedData.costCenter === selectedCostCenter;
+      else if (selectedStatus) validation = savedData.status === selectedStatus;
+      else if (selectedStartDate && selectedFinishDate)
+        validation = createdAt >= selectedStartDate && createdAt <= selectedFinishDate;
 
       if (validation) {
         const index = searchResult.findIndex((item) => item.PK === savedData.PK);
@@ -172,6 +231,7 @@ export function Search({
       }
 
       resertTableFilters();
+      setTableActionsArray();
     }
   }, [savedData]);
 
@@ -185,6 +245,20 @@ export function Search({
     }
   }, [selectedPending]);
 
+  const setTableActionsArray = () => {
+    const rowActions = [];
+    if (tableActions.includes('PRINT')) rowActions.push('PRINT');
+    if (selectedPending) {
+      if (tableActions.includes('APPROVE')) rowActions.push('APPROVE');
+    } else {
+      if (tableActions.includes('UPDATE')) rowActions.push('UPDATE');
+      if (tableActions.includes('MANAGE')) rowActions.push('MANAGE');
+      if (tableActions.includes('SEND')) rowActions.push('SEND');
+    }
+    setDynamicTableActions(rowActions);
+    console.log(rowActions);
+  };
+
   useEffect(() => {
     if (requestType && isLoading) {
       const query: Record<string, string> = {};
@@ -193,19 +267,9 @@ export function Search({
       if (selectedStatus) query.status = selectedStatus;
       if (selectedStartDate) query.startDate = selectedStartDate;
       if (selectedFinishDate) query.finishDate = selectedFinishDate;
+      if (selectedPending) query.pending = 'Pending';
 
-      const rowActions = [];
-      if (tableActions.includes('PRINT')) rowActions.push('PRINT');
-      if (selectedPending) {
-        if (tableActions.includes('APPROVE')) rowActions.push('APPROVE');
-
-        query.pending = 'Pending';
-      } else {
-        if (tableActions.includes('UPDATE')) rowActions.push('UPDATE');
-        if (tableActions.includes('MANAGE')) rowActions.push('MANAGE');
-        if (tableActions.includes('SEND')) rowActions.push('SEND');
-      }
-      setDynamicTableActions(rowActions);
+      setTableActionsArray();
 
       query.action = requestType === 'search' ? 'SEARCH' : 'INFORM';
 
@@ -402,6 +466,16 @@ export function Search({
                     disabled={selectedPending}
                     label="Fecha de inicio"
                     slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    minDate={
+                      !selectedRequester &&
+                      !selectedCostCenter &&
+                      !selectedStatus &&
+                      !selectedPending &&
+                      selectedFinishDate
+                        ? dayjs(selectedFinishDate).subtract(1, 'month')
+                        : undefined
+                    }
+                    maxDate={dayjs(selectedFinishDate)}
                     value={selectedStartDate ? dayjs(selectedStartDate) : null}
                     onChange={(newValue) => {
                       setSelectedStartDate(newValue ? newValue.toISOString() : null);
@@ -417,6 +491,15 @@ export function Search({
                     label="Fecha final"
                     slotProps={{ textField: { size: 'small', fullWidth: true } }}
                     minDate={dayjs(selectedStartDate)}
+                    maxDate={
+                      !selectedRequester &&
+                      !selectedCostCenter &&
+                      !selectedStatus &&
+                      !selectedPending &&
+                      selectedStartDate
+                        ? dayjs(selectedStartDate).add(1, 'month')
+                        : undefined
+                    }
                     value={selectedFinishDate ? dayjs(selectedFinishDate) : null}
                     onChange={(newValue) => {
                       setSelectedFinishDate(newValue ? newValue.toISOString() : null);
